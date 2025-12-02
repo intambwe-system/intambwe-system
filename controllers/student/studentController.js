@@ -1,0 +1,488 @@
+// controllers/studentController.js
+const Student = require('../models/Student');
+const Class = require('../models/Class');
+const Department = require('../models/Department');
+const { Op } = require('sequelize');
+
+const studentController = {
+  // CREATE - Add new student
+  async createStudent(req, res) {
+    try {
+      const studentData = req.body;
+
+      // Validate required fields
+      if (!studentData.std_fname || !studentData.std_lname) {
+        return res.status(400).json({
+          success: false,
+          message: 'First name and last name are required'
+        });
+      }
+
+      // Validate email format if provided
+      if (studentData.std_email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(studentData.std_email)) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid email format'
+          });
+        }
+
+        // Check if email already exists
+        const existingStudent = await Student.findOne({
+          where: { std_email: studentData.std_email }
+        });
+
+        if (existingStudent) {
+          return res.status(409).json({
+            success: false,
+            message: 'Email already exists'
+          });
+        }
+      }
+
+      // Check if class exists (if provided)
+      if (studentData.class_id) {
+        const classExists = await Class.findByPk(studentData.class_id);
+        if (!classExists) {
+          return res.status(404).json({
+            success: false,
+            message: 'Class not found'
+          });
+        }
+      }
+
+      // Check if department exists (if provided)
+      if (studentData.dpt_id) {
+        const department = await Department.findByPk(studentData.dpt_id);
+        if (!department) {
+          return res.status(404).json({
+            success: false,
+            message: 'Department not found'
+          });
+        }
+      }
+
+      // Create student
+      const newStudent = await Student.create(studentData);
+
+      return res.status(201).json({
+        success: true,
+        message: 'Student created successfully',
+        data: newStudent
+      });
+
+    } catch (error) {
+      console.error('Error creating student:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: error.message
+      });
+    }
+  },
+
+  // READ - Get all students
+  async getAllStudents(req, res) {
+    try {
+      const { 
+        grade, 
+        class_id, 
+        dpt_id, 
+        gender, 
+        page = 1, 
+        limit = 10 
+      } = req.query;
+
+      // Build where clause
+      const whereClause = {};
+      if (grade) whereClause.std_grade = grade;
+      if (class_id) whereClause.class_id = class_id;
+      if (dpt_id) whereClause.dpt_id = dpt_id;
+      if (gender) whereClause.std_gender = gender;
+
+      // Calculate pagination
+      const offset = (page - 1) * limit;
+
+      // Fetch students with pagination
+      const { count, rows } = await Student.findAndCountAll({
+        where: whereClause,
+        include: [
+          {
+            model: Class,
+            attributes: ['class_id', 'class_name']
+          },
+          {
+            model: Department,
+            attributes: ['dpt_id', 'dpt_name']
+          }
+        ],
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+        order: [['std_id', 'DESC']]
+      });
+
+      return res.status(200).json({
+        success: true,
+        data: rows,
+        pagination: {
+          total: count,
+          page: parseInt(page),
+          limit: parseInt(limit),
+          totalPages: Math.ceil(count / limit)
+        }
+      });
+
+    } catch (error) {
+      console.error('Error fetching students:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: error.message
+      });
+    }
+  },
+
+  // READ - Get student by ID
+  async getStudentById(req, res) {
+    try {
+      const { id } = req.params;
+
+      // Validate ID
+      if (!id || isNaN(id)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid student ID'
+        });
+      }
+
+      const student = await Student.findByPk(id, {
+        include: [
+          {
+            model: Class,
+            attributes: ['class_id', 'class_name']
+          },
+          {
+            model: Department,
+            attributes: ['dpt_id', 'dpt_name']
+          }
+        ]
+      });
+
+      if (!student) {
+        return res.status(404).json({
+          success: false,
+          message: 'Student not found'
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        data: student
+      });
+
+    } catch (error) {
+      console.error('Error fetching student:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: error.message
+      });
+    }
+  },
+
+  // READ - Get students by class
+  async getStudentsByClass(req, res) {
+    try {
+      const { class_id } = req.params;
+
+      // Validate class_id
+      if (!class_id || isNaN(class_id)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid class ID'
+        });
+      }
+
+      const students = await Student.findAll({
+        where: { class_id },
+        include: [
+          {
+            model: Class,
+            attributes: ['class_id', 'class_name']
+          },
+          {
+            model: Department,
+            attributes: ['dpt_id', 'dpt_name']
+          }
+        ],
+        order: [['std_lname', 'ASC'], ['std_fname', 'ASC']]
+      });
+
+      return res.status(200).json({
+        success: true,
+        data: students,
+        count: students.length
+      });
+
+    } catch (error) {
+      console.error('Error fetching students by class:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: error.message
+      });
+    }
+  },
+
+  // UPDATE - Update student
+  async updateStudent(req, res) {
+    try {
+      const { id } = req.params;
+      const updateData = req.body;
+
+      // Validate ID
+      if (!id || isNaN(id)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid student ID'
+        });
+      }
+
+      // Find student
+      const student = await Student.findByPk(id);
+      if (!student) {
+        return res.status(404).json({
+          success: false,
+          message: 'Student not found'
+        });
+      }
+
+      // Validate email if being updated
+      if (updateData.std_email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(updateData.std_email)) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid email format'
+          });
+        }
+
+        // Check if email is being updated and already exists
+        if (updateData.std_email !== student.std_email) {
+          const existingStudent = await Student.findOne({
+            where: { std_email: updateData.std_email }
+          });
+          if (existingStudent) {
+            return res.status(409).json({
+              success: false,
+              message: 'Email already exists'
+            });
+          }
+        }
+      }
+
+      // Check if class exists (if being updated)
+      if (updateData.class_id) {
+        const classExists = await Class.findByPk(updateData.class_id);
+        if (!classExists) {
+          return res.status(404).json({
+            success: false,
+            message: 'Class not found'
+          });
+        }
+      }
+
+      // Check if department exists (if being updated)
+      if (updateData.dpt_id) {
+        const department = await Department.findByPk(updateData.dpt_id);
+        if (!department) {
+          return res.status(404).json({
+            success: false,
+            message: 'Department not found'
+          });
+        }
+      }
+
+      // Update student
+      await student.update(updateData);
+
+      // Fetch updated student with relations
+      const updatedStudent = await Student.findByPk(id, {
+        include: [
+          {
+            model: Class,
+            attributes: ['class_id', 'class_name']
+          },
+          {
+            model: Department,
+            attributes: ['dpt_id', 'dpt_name']
+          }
+        ]
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Student updated successfully',
+        data: updatedStudent
+      });
+
+    } catch (error) {
+      console.error('Error updating student:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: error.message
+      });
+    }
+  },
+
+  // DELETE - Delete student
+  async deleteStudent(req, res) {
+    try {
+      const { id } = req.params;
+
+      // Validate ID
+      if (!id || isNaN(id)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid student ID'
+        });
+      }
+
+      // Find student
+      const student = await Student.findByPk(id);
+      if (!student) {
+        return res.status(404).json({
+          success: false,
+          message: 'Student not found'
+        });
+      }
+
+      // Delete student
+      await student.destroy();
+
+      return res.status(200).json({
+        success: true,
+        message: 'Student deleted successfully'
+      });
+
+    } catch (error) {
+      console.error('Error deleting student:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: error.message
+      });
+    }
+  },
+
+  // SEARCH - Search students
+  async searchStudents(req, res) {
+    try {
+      const { query } = req.query;
+
+      if (!query || query.trim().length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Search query is required'
+        });
+      }
+
+      const students = await Student.findAll({
+        where: {
+          [Op.or]: [
+            { std_fname: { [Op.like]: `%${query}%` } },
+            { std_lname: { [Op.like]: `%${query}%` } },
+            { std_email: { [Op.like]: `%${query}%` } },
+            { std_grade: { [Op.like]: `%${query}%` } }
+          ]
+        },
+        include: [
+          {
+            model: Class,
+            attributes: ['class_id', 'class_name']
+          },
+          {
+            model: Department,
+            attributes: ['dpt_id', 'dpt_name']
+          }
+        ],
+        limit: 20,
+        order: [['std_lname', 'ASC'], ['std_fname', 'ASC']]
+      });
+
+      return res.status(200).json({
+        success: true,
+        data: students,
+        count: students.length
+      });
+
+    } catch (error) {
+      console.error('Error searching students:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: error.message
+      });
+    }
+  },
+
+  // GET STATISTICS - Get student statistics
+  async getStudentStats(req, res) {
+    try {
+      const totalStudents = await Student.count();
+      
+      const studentsByGrade = await Student.findAll({
+        attributes: [
+          'std_grade',
+          [sequelize.fn('COUNT', sequelize.col('std_id')), 'count']
+        ],
+        group: ['std_grade'],
+        raw: true
+      });
+
+      const studentsByGender = await Student.findAll({
+        attributes: [
+          'std_gender',
+          [sequelize.fn('COUNT', sequelize.col('std_id')), 'count']
+        ],
+        group: ['std_gender'],
+        raw: true
+      });
+
+      const studentsByClass = await Student.findAll({
+        attributes: [
+          'class_id',
+          [sequelize.fn('COUNT', sequelize.col('std_id')), 'count']
+        ],
+        include: [{
+          model: Class,
+          attributes: ['class_name']
+        }],
+        group: ['class_id'],
+        raw: true
+      });
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          total: totalStudents,
+          byGrade: studentsByGrade,
+          byGender: studentsByGender,
+          byClass: studentsByClass
+        }
+      });
+
+    } catch (error) {
+      console.error('Error fetching student statistics:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: error.message
+      });
+    }
+  }
+};
+
+module.exports = studentController;
