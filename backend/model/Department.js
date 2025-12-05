@@ -14,7 +14,7 @@ const Department = sequelize.define('Department', {
     unique: true
   }
 }, {
-  tableNameaa: 'Department',
+  tableName: 'Department',
   timestamps: false
 });
 
