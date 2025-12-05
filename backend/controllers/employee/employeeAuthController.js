@@ -39,18 +39,18 @@ const employeeAuthController = {
       });
 
       if (!employee) {
-        return res.status(401).json({
+        return res.status(404).json({
           success: false,
-          message: 'Invalid email or password'
+          message: 'User doesnt exist'
         });
       }
 
       // Verify password
       const isPasswordValid = await bcrypt.compare(emp_password, employee.emp_password);
       if (!isPasswordValid) {
-        return res.status(401).json({
+        return res.status(400).json({
           success: false,
-          message: 'Invalid email or password'
+          message: 'Invalid password'
         });
       }
 
@@ -236,6 +236,8 @@ const employeeAuthController = {
         { expiresIn: JWT_EXPIRES_IN }
       );
 
+      console.log(' \n  REFRESHED TOKEN \n');
+      
       return res.status(200).json({
         success: true,
         message: 'Token refreshed successfully',
