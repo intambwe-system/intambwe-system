@@ -1,17 +1,27 @@
-const { Class, Department, Employee, Student, Subject, TimetableEntry, Attendance, SpecialEvent } = require('../../model');
-const classValidator = require('../../validators/classValidator');
+const {
+  Class,
+  Department,
+  Employee,
+  Student,
+  Subject,
+  TimetableEntry,
+  Attendance,
+  SpecialEvent,
+  Trade,
+} = require("../../model");
+const classValidator = require("../../validators/classValidator");
 
 const classController = {
   async createClass(req, res) {
     try {
       const data = req.body;
-      
+
       const validation = classValidator.validateClassData(data);
       if (!validation.isValid) {
         return res.status(400).json({
           success: false,
-          message: 'Validation failed',
-          errors: validation.errors
+          message: "Validation failed",
+          errors: validation.errors,
         });
       }
 
@@ -20,7 +30,7 @@ const classController = {
         if (!department) {
           return res.status(404).json({
             success: false,
-            message: 'Department not found'
+            message: "Department not found",
           });
         }
       }
@@ -30,55 +40,65 @@ const classController = {
         if (!teacher) {
           return res.status(404).json({
             success: false,
-            message: 'Employee not found'
+            message: "Employee not found",
           });
         }
+      }
+
+      if (data.tradeId) {
+        const trade = await Trade.findByPk(data.tradeId);
+        if (!trade)
+          return res
+            .status(404)
+            .json({ success: false, message: "Trade not found" });
       }
 
       const newClass = await Class.create(data);
 
       return res.status(201).json({
         success: true,
-        message: 'Class created successfully',
-        data: newClass
+        message: "Class created successfully",
+        data: newClass,
       });
     } catch (error) {
-      console.error('Error creating class:', error);
+      console.error("Error creating class:", error);
       return res.status(500).json({
         success: false,
-        message: 'Internal server error',
-        error: error.message
+        message: "Internal server error",
+        error: error.message,
       });
     }
   },
 
   async getAllClasses(req, res) {
     try {
-      const { dpt_id, emp_id } = req.query;
+      const { dpt_id, emp_id, tradeId } = req.query;
 
       const whereClause = {};
       if (dpt_id) whereClause.dpt_id = dpt_id;
       if (emp_id) whereClause.emp_id = emp_id;
+      if (tradeId) whereClause.tradeId = tradeId;
 
       const classes = await Class.findAll({
         where: whereClause,
         include: [
           { model: Department },
-          { model: Employee, as: 'classTeacher' }
+          { model: Employee, as: "classTeacher" },
+          { model: Trade, as: "Trade" },
         ],
-        order: [['class_name', 'ASC']]
+        order: [["class_name", "ASC"]],
       });
 
       return res.status(200).json({
         success: true,
-        data: classes
+        data: classes,
       });
     } catch (error) {
-      console.error('Error fetching classes:', error);
+      console.error("Error fetching classes:", error);
       return res.status(500).json({
         success: false,
-        message: 'Internal server error',
-        error: error.message
+        message: "Internal server error",
+        error: error.message,
       });
     }
   },
@@ -90,34 +110,34 @@ const classController = {
       if (!id || isNaN(id)) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid class ID'
+          message: "Invalid class ID",
         });
       }
 
       const classObj = await Class.findByPk(id, {
         include: [
           { model: Department },
-          { model: Employee, as: 'classTeacher' }
-        ]
+          { model: Employee, as: "classTeacher" },
+        ],
       });
 
       if (!classObj) {
         return res.status(404).json({
           success: false,
-          message: 'Class not found'
+          message: "Class not found",
         });
       }
 
       return res.status(200).json({
         success: true,
-        data: classObj
+        data: classObj,
       });
     } catch (error) {
-      console.error('Error fetching class:', error);
+      console.error("Error fetching class:", error);
       return res.status(500).json({
         success: false,
-        message: 'Internal server error',
-        error: error.message
+        message: "Internal server error",
+        error: error.message,
       });
     }
   },
@@ -130,7 +150,7 @@ const classController = {
       if (!id || isNaN(id)) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid class ID'
+          message: "Invalid class ID",
         });
       }
 
@@ -138,7 +158,7 @@ const classController = {
       if (!classObj) {
         return res.status(404).json({
           success: false,
-          message: 'Class not found'
+          message: "Class not found",
         });
       }
 
@@ -146,8 +166,8 @@ const classController = {
       if (!validation.isValid) {
         return res.status(400).json({
           success: false,
-          message: 'Validation failed',
-          errors: validation.errors
+          message: "Validation failed",
+          errors: validation.errors,
         });
       }
 
@@ -156,7 +176,7 @@ const classController = {
         if (!department) {
           return res.status(404).json({
             success: false,
-            message: 'Department not found'
+            message: "Department not found",
           });
         }
       }
@@ -166,9 +186,17 @@ const classController = {
         if (!teacher) {
           return res.status(404).json({
             success: false,
-            message: 'Employee not found'
+            message: "Employee not found",
           });
         }
+      }
+
+      if (updateData.tradeId) {
+        const trade = await Trade.findByPk(updateData.tradeId);
+        if (!trade)
+          return res
+            .status(404)
+            .json({ success: false, message: "Trade not found" });
       }
 
       await classObj.update(updateData);
@@ -176,21 +204,22 @@ const classController = {
       const updated = await Class.findByPk(id, {
         include: [
           { model: Department },
-          { model: Employee, as: 'classTeacher' }
-        ]
+          { model: Employee, as: "classTeacher" },
+          { model: Trade, as: "Trade" },
+        ],
       });
 
       return res.status(200).json({
         success: true,
-        message: 'Class updated successfully',
-        data: updated
+        message: "Class updated successfully",
+        data: updated,
       });
     } catch (error) {
-      console.error('Error updating class:', error);
+      console.error("Error updating class:", error);
       return res.status(500).json({
         success: false,
-        message: 'Internal server error',
-        error: error.message
+        message: "Internal server error",
+        error: error.message,
       });
     }
   },
@@ -202,7 +231,7 @@ const classController = {
       if (!id || isNaN(id)) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid class ID'
+          message: "Invalid class ID",
         });
       }
 
@@ -210,7 +239,7 @@ const classController = {
       if (!classObj) {
         return res.status(404).json({
           success: false,
-          message: 'Class not found'
+          message: "Class not found",
         });
       }
 
@@ -218,14 +247,14 @@ const classController = {
 
       return res.status(200).json({
         success: true,
-        message: 'Class deleted successfully'
+        message: "Class deleted successfully",
       });
     } catch (error) {
-      console.error('Error deleting class:', error);
+      console.error("Error deleting class:", error);
       return res.status(500).json({
         success: false,
-        message: 'Internal server error',
-        error: error.message
+        message: "Internal server error",
+        error: error.message,
       });
     }
   },
@@ -237,7 +266,7 @@ const classController = {
       if (!id || isNaN(id)) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid class ID'
+          message: "Invalid class ID",
         });
       }
 
@@ -245,25 +274,28 @@ const classController = {
       if (!classObj) {
         return res.status(404).json({
           success: false,
-          message: 'Class not found'
+          message: "Class not found",
         });
       }
 
       const students = await Student.findAll({
         where: { class_id: id },
-        order: [['std_lname', 'ASC'], ['std_fname', 'ASC']]
+        order: [
+          ["std_lname", "ASC"],
+          ["std_fname", "ASC"],
+        ],
       });
 
       return res.status(200).json({
         success: true,
-        data: students
+        data: students,
       });
     } catch (error) {
-      console.error('Error fetching class students:', error);
+      console.error("Error fetching class students:", error);
       return res.status(500).json({
         success: false,
-        message: 'Internal server error',
-        error: error.message
+        message: "Internal server error",
+        error: error.message,
       });
     }
   },
@@ -275,7 +307,7 @@ const classController = {
       if (!id || isNaN(id)) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid class ID'
+          message: "Invalid class ID",
         });
       }
 
@@ -283,24 +315,24 @@ const classController = {
       if (!classObj) {
         return res.status(404).json({
           success: false,
-          message: 'Class not found'
+          message: "Class not found",
         });
       }
 
       const subjects = await Subject.findAll({
-        where: { class_id: id }
+        where: { class_id: id },
       });
 
       return res.status(200).json({
         success: true,
-        data: subjects
+        data: subjects,
       });
     } catch (error) {
-      console.error('Error fetching class subjects:', error);
+      console.error("Error fetching class subjects:", error);
       return res.status(500).json({
         success: false,
-        message: 'Internal server error',
-        error: error.message
+        message: "Internal server error",
+        error: error.message,
       });
     }
   },
@@ -312,31 +344,32 @@ const classController = {
       if (!id || isNaN(id)) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid class ID'
+          message: "Invalid class ID",
         });
       }
 
       const classObj = await Class.findByPk(id, {
         include: [
           { model: Department },
-          { model: Employee, as: 'classTeacher' }
-        ]
+          { model: Employee, as: "classTeacher" },
+        ],
       });
 
       if (!classObj) {
         return res.status(404).json({
           success: false,
-          message: 'Class not found'
+          message: "Class not found",
         });
       }
 
-      const [students, subjects, timetableEntries, events, attendance] = await Promise.all([
-        Student.findAll({ where: { class_id: id } }),
-        Subject.findAll({ where: { class_id: id } }),
-        TimetableEntry.findAll({ where: { class_id: id } }),
-        SpecialEvent.findAll({ where: { class_id: id } }),
-        Attendance.findAll({ where: { class_id: id } })
-      ]);
+      const [students, subjects, timetableEntries, events, attendance] =
+        await Promise.all([
+          Student.findAll({ where: { class_id: id } }),
+          Subject.findAll({ where: { class_id: id } }),
+          TimetableEntry.findAll({ where: { class_id: id } }),
+          SpecialEvent.findAll({ where: { class_id: id } }),
+          Attendance.findAll({ where: { class_id: id } }),
+        ]);
 
       return res.status(200).json({
         success: true,
@@ -346,18 +379,18 @@ const classController = {
           subjectsCount: subjects.length,
           timetableEntriesCount: timetableEntries.length,
           eventsCount: events.length,
-          attendanceRecordsCount: attendance.length
-        }
+          attendanceRecordsCount: attendance.length,
+        },
       });
     } catch (error) {
-      console.error('Error fetching class overview:', error);
+      console.error("Error fetching class overview:", error);
       return res.status(500).json({
         success: false,
-        message: 'Internal server error',
-        error: error.message
+        message: "Internal server error",
+        error: error.message,
       });
     }
-  }
+  },
 };
 
 module.exports = classController;
