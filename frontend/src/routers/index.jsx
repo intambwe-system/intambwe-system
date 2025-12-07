@@ -7,6 +7,7 @@ import DashboardHomePage from "../pages/dashboard/DashboardHome";
 import Home from "../pages/Home";
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
 import EmployeeProfilePage from "../pages/dashboard/employee/EmployeeProfilePage";
+import DepartmentDashboard from "../pages/dashboard/DepartmentPage";
 
 const LoadingSpinner = () => (
   <div className="loading-spinner">
@@ -38,6 +39,8 @@ const router = createBrowserRouter([
                 children: [
                     {index:true , element:<DashboardHomePage />},
                     {path:'profile' , element:<EmployeeProfilePage />},
+                    {path:'department' , element:<DepartmentDashboard />},
+
 
                 ],
             }
