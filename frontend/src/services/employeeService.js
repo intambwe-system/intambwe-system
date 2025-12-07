@@ -1,115 +1,120 @@
 import api from '../api/api'; // Axios instance with JWT interceptor
 
-class DepartmentService {
-  // CREATE
-  async createDepartment(data) {
+class EmployeeService {
+  // CREATE (Normal employee - protected)
+  async createEmployee(data) {
     try {
-      const response = await api.post('/department', data);
+      const response = await api.post('/employee', data);
       return response.data;
     } catch (error) {
       const msg =
         error.response?.data?.message ||
         error.message ||
-        'Failed to create department';
+        'Failed to create employee';
       throw new Error(msg);
     }
   }
 
-  // GET ALL
-  async getAllDepartments() {
+
+
+  // GET ALL (with filters & pagination)
+  async getAllEmployees(filters = {}) {
     try {
-      const response = await api.get('/department');
+      const response = await api.get('/employee', { params: filters });
       return response.data;
     } catch (error) {
       const msg =
         error.response?.data?.message ||
         error.message ||
-        'Failed to load departments';
+        'Failed to load employees';
+      throw new Error(msg);
+    }
+  }
+
+  // SEARCH EMPLOYEES (?query=)
+  async searchEmployees(query) {
+    try {
+      const response = await api.get('/employee/search', {
+        params: { query },
+      });
+      return response.data;
+    } catch (error) {
+      const msg =
+        error.response?.data?.message ||
+        error.message ||
+        'Failed to search employees';
       throw new Error(msg);
     }
   }
 
   // GET BY ID
-  async getDepartmentById(id) {
+  async getEmployeeById(id) {
     try {
-      const response = await api.get(`/department/${id}`);
+      const response = await api.get(`/employee/${id}`);
       return response.data;
     } catch (error) {
       const msg =
         error.response?.data?.message ||
         error.message ||
-        'Failed to load department';
-      throw new Error(msg);
-    }
-  }
-
-  // GET OVERVIEW
-  async getDepartmentOverview(id) {
-    try {
-      const response = await api.get(`/department/${id}/overview`);
-      return response.data;
-    } catch (error) {
-      const msg =
-        error.response?.data?.message ||
-        error.message ||
-        'Failed to load department overview';
+        'Failed to load employee';
       throw new Error(msg);
     }
   }
 
   // UPDATE (PUT)
-  async updateDepartment(id, data) {
+  async updateEmployee(id, data) {
     try {
-      const response = await api.put(`/department/${id}`, data);
+      const response = await api.put(`/employee/${id}`, data);
       return response.data;
     } catch (error) {
       const msg =
         error.response?.data?.message ||
         error.message ||
-        'Failed to update department';
+        'Failed to update employee';
       throw new Error(msg);
     }
   }
 
-  // PATCH
-  async patchDepartment(id, data) {
+  // PATCH (Partial update)
+  async patchEmployee(id, data) {
     try {
-      const response = await api.patch(`/department/${id}`, data);
+      const response = await api.patch(`/employee/${id}`, data);
       return response.data;
     } catch (error) {
       const msg =
         error.response?.data?.message ||
         error.message ||
-        'Failed to update department';
+        'Failed to update employee';
       throw new Error(msg);
     }
   }
 
   // DELETE
-  async deleteDepartment(id) {
+  async deleteEmployee(id) {
     try {
-      const response = await api.delete(`/department/${id}`);
+      const response = await api.delete(`/employee/${id}`);
       return response.data;
     } catch (error) {
       const msg =
         error.response?.data?.message ||
         error.message ||
-        'Failed to delete department';
+        'Failed to delete employee';
       throw new Error(msg);
     }
   }
 }
 
-const departmentService = new DepartmentService();
-export default departmentService;
+const employeeService = new EmployeeService();
+export default employeeService;
 
 // Optional named exports
 export const {
-  createDepartment,
-  getAllDepartments,
-  getDepartmentById,
-  getDepartmentOverview,
-  updateDepartment,
-  patchDepartment,
-  deleteDepartment,
-} = departmentService;
+  createEmployee,
+  createAdminEmployee,
+  getAllEmployees,
+  searchEmployees,
+  getEmployeeById,
+  updateEmployee,
+  patchEmployee,
+  deleteEmployee,
+} = employeeService;

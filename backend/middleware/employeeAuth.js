@@ -136,7 +136,7 @@ const generateEmployeeAccessToken = async (employee) => {
             emp_email: employee.emp_email
         },
         process.env.JWT_SECRET || 'your-secret-key',
-        { expiresIn: '7d' }
+        { expiresIn: process.env.JWT_EXPIRES_IN }
     );
 };
 
@@ -149,6 +149,37 @@ const generateEmployeeRefreshToken = async (employee) => {
         { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN }
     );
 };
+
+
+/**
+ * Generate a secure random password
+ * @param {number} length - Length of password (default: 12)
+ * @returns {string} - Generated password
+ */
+const generateSecurePassword = (length = 12) => {
+  const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+  const numbers = '0123456789';
+  const symbols = '!@#$%^&*()_+-=[]{}|;:,.<>?';
+  
+  const allChars = uppercase + lowercase + numbers + symbols;
+  let password = '';
+  
+  // Ensure at least one character from each category
+  password += uppercase[Math.floor(Math.random() * uppercase.length)];
+  password += lowercase[Math.floor(Math.random() * lowercase.length)];
+  password += numbers[Math.floor(Math.random() * numbers.length)];
+  password += symbols[Math.floor(Math.random() * symbols.length)];
+  
+  // Fill the rest randomly
+  for (let i = password.length; i < length; i++) {
+    password += allChars[Math.floor(Math.random() * allChars.length)];
+  }
+  
+  // Shuffle the password
+  return password.split('').sort(() => Math.random() - 0.5).join('');
+};
+
 
 
 // Check if user has required role(s)
@@ -227,6 +258,7 @@ module.exports = {
   authorizeDepartment,
   generateEmployeeAccessToken,
   generateEmployeeRefreshToken,
+  generateSecurePassword,
 };
 
 
