@@ -66,14 +66,6 @@ const employeeValidator = {
       }
     }
 
-    // Password validation (only for create or if password is being updated)
-    if (!isUpdate || data.emp_password !== undefined) {
-      if (!isUpdate && !data.emp_password) {
-        errors.push('Password is required');
-      } else if (data.emp_password && !this.isValidPassword(data.emp_password)) {
-        errors.push('Password must be at least 8 characters with uppercase, lowercase, and number');
-      }
-    }
 
     // Gender validation
     if (data.emp_gender && !this.isValidGender(data.emp_gender)) {

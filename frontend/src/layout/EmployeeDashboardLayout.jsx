@@ -42,18 +42,7 @@ export default function EmployeeDashboardLayout() {
                 </div>
             </div>
 
-            {/* Role Switcher for Testing */}
-            <div className="fixed bottom-4 right-4 bg-white rounded-lg shadow-lg border border-gray-200 p-3">
-                <p className="text-xs font-medium text-gray-600 mb-2">Test Role:</p>
-                <select
-                    value={user.role}
-                    className="text-sm border border-gray-300 rounded px-2 py-1"
-                >
-                    <option value="admin">Admin</option>
-                    <option value="stock_manager">Stock Manager</option>
-                    <option value="teacher">Teacher</option>
-                </select>
-            </div>
+         
         </>
 
     );

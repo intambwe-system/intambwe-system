@@ -16,24 +16,6 @@ export const EmployeeAuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-    // Store tokens in localStorage
-    const setTokens = useCallback((accessToken, refreshToken) => {
-        if (accessToken) localStorage.setItem('accessToken', accessToken);
-        if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
-    }, []);
-
-    const clearTokens = useCallback(() => {
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-    }, []);
-
-    const getStoredTokens = useCallback(() => {
-        return {
-            accessToken: localStorage.getItem('accessToken'),
-            refreshToken: localStorage.getItem('refreshToken'),
-        };
-    }, []);
-
     // Load profile
     const loadProfile = useCallback(async () => {
         try {
@@ -50,39 +32,16 @@ export const EmployeeAuthProvider = ({ children }) => {
         }
     }, []);
 
-    // Handle token refresh
-    const handleRefreshToken = useCallback(async () => {
-        const { refreshToken } = getStoredTokens();
-        if (!refreshToken) {
-            throw new Error('No refresh token available');
-        }
-
-        try {
-            const data = await employeeAuthService.refreshToken(refreshToken);
-            if (data.success && data.accessToken) {
-                setTokens(data.accessToken, data.refreshToken || refreshToken);
-                return data.accessToken;
-            }
-            throw new Error('Token refresh failed');
-        } catch (error) {
-            console.error('Token refresh error:', error);
-            clearTokens();
-            setEmployee(null);
-            setIsAuthenticated(false);
-            throw error;
-        }
-    }, [getStoredTokens, setTokens, clearTokens]);
-
     // Login
     const login = useCallback(async (credentials) => {
         try {
-
-            
-            const data = await employeeAuthService.login({emp_password:credentials.password,emp_email:credentials.email});
+            const data = await employeeAuthService.login({
+                emp_password: credentials.password,
+                emp_email: credentials.email
+            });
             console.warn(data);
             
             if (data.success) {
-                setTokens(data.data.accessToken, data.data.refreshToken);
                 setEmployee(data.data.employee);
                 setIsAuthenticated(true);
                 return { success: true, data };
@@ -91,14 +50,13 @@ export const EmployeeAuthProvider = ({ children }) => {
         } catch (error) {
             return { success: false, message: error.message };
         }
-    }, [setTokens]);
+    }, []);
 
     // Google Login
     const googleLogin = useCallback(async (credential) => {
         try {
             const data = await employeeAuthService.googleLogin(credential);
             if (data.success) {
-                setTokens(data.data.accessToken, data.data.refreshToken);
                 setEmployee(data.employee);
                 setIsAuthenticated(true);
                 return { success: true, data };
@@ -107,7 +65,7 @@ export const EmployeeAuthProvider = ({ children }) => {
         } catch (error) {
             return { success: false, message: error.message };
         }
-    }, [setTokens]);
+    }, []);
 
     // Logout
     const logout = useCallback(async () => {
@@ -116,11 +74,10 @@ export const EmployeeAuthProvider = ({ children }) => {
         } catch (error) {
             console.error('Logout error:', error);
         } finally {
-            clearTokens();
             setEmployee(null);
             setIsAuthenticated(false);
         }
-    }, [clearTokens]);
+    }, []);
 
     // Change Password
     const changePassword = useCallback(async (passwordData) => {
@@ -155,35 +112,20 @@ export const EmployeeAuthProvider = ({ children }) => {
     // Initialize auth state on mount
     useEffect(() => {
         const initAuth = async () => {
-            const { accessToken } = getStoredTokens();
-
-            if (accessToken) {
-                try {
-                    // Verify token is still valid
-                    const verifyData = await employeeAuthService.verifyToken();
-                    if (verifyData.success) {
-                       
-                        
-                        await loadProfile();
-                    } else {
-                        // Try to refresh if verification fails
-                        try {
-                            await handleRefreshToken();
-                            await loadProfile();
-                        } catch (error) {
-                            clearTokens();
-                        }
-                    }
-                } catch (error) {
-                    clearTokens();
-                }
+            try {
+                // Try to load profile using cookie-based auth
+                // If cookies exist and are valid, this will succeed
+                await loadProfile();
+            } catch (error) {
+                // If profile load fails, user needs to login
+                console.log('No valid session found');
+            } finally {
+                setLoading(false);
             }
-
-            setLoading(false);
         };
 
         initAuth();
-    }, [getStoredTokens, loadProfile, handleRefreshToken, clearTokens]);
+    }, [loadProfile]);
 
     const value = {
         employee,
@@ -195,7 +137,6 @@ export const EmployeeAuthProvider = ({ children }) => {
         changePassword,
         forgotPassword,
         resetPassword,
-        refreshToken: handleRefreshToken,
         loadProfile,
     };
 

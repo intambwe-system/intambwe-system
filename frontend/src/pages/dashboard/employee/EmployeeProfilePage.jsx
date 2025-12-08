@@ -11,6 +11,8 @@ export default function EmployeeProfilePage() {
   const [errorMessage, setErrorMessage] = useState('');
 
 const {employee} =useEmployeeAuth()
+console.log(employee);
+
 
   const [formData, setFormData] = useState({ ...employee });
 
@@ -115,8 +117,7 @@ const {employee} =useEmployeeAuth()
         ...updateData,
         emp_password: ''
       };
-      
-      setEmployee(updatedEmployee);
+     
       setFormData({ ...updatedEmployee, emp_password: '' });
       setIsEditing(false);
       setShowPassword(false);
@@ -223,7 +224,7 @@ const {employee} =useEmployeeAuth()
                     <Building2 className="w-4 h-4 text-slate-400" />
                     <div>
                       <div className="text-xs text-slate-500">Department</div>
-                      <div className="text-sm font-medium text-slate-900">{employee.department_name}</div>
+                      <div className="text-sm font-medium text-slate-900">{employee.department?.dpt_name}</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
@@ -281,12 +282,12 @@ const {employee} =useEmployeeAuth()
               <InfoCard title="Contact Information" icon={Phone}>
                 <InfoRow label="Email" value={employee.emp_email} icon={<Mail className="w-3.5 h-3.5" />} />
                 <InfoRow label="Phone" value={employee.emp_phoneNumber} icon={<Phone className="w-3.5 h-3.5" />} />
-                <InfoRow label="Address" value={employee.address} icon={<MapPin className="w-3.5 h-3.5" />} />
+
               </InfoCard>
 
               <InfoCard title="Work Information" icon={Building2}>
                 <InfoRow label="Role" value={employee.emp_role.replace('_', ' ').toUpperCase()} />
-                <InfoRow label="Department" value={employee.department_name} />
+                <InfoRow label="Department" value={employee.department?.dpt_name} />
                 <InfoRow label="Status" value={<span className="text-emerald-600 font-medium">Active</span>} />
               </InfoCard>
 
@@ -364,8 +365,7 @@ const {employee} =useEmployeeAuth()
                     <button
                       onClick={handleCancel}
                       disabled={isLoading}
-                      className="flex items-center gap-2 bg-slate-100 text-slate-700 px-6 py-3 rounded-lg font-medium hover:bg-slate-200 transition-colors disabled:opacity-50"
-                    >
+                      className="flex items-center gap-2 bg-slate-100 text-slate-700 px-6 py-3 rounded-lg font-medium hover:bg-slate-200 transition-colors disabled:opacity-50">
                       <X className="w-5 h-5" />
                       Cancel
                     </button>
@@ -480,7 +480,7 @@ const {employee} =useEmployeeAuth()
                   </p>
                 </div>
                 <InfoRow label="Role" value={employee.emp_role.replace('_', ' ').toUpperCase()} />
-                <InfoRow label="Department" value={employee.department_name} />
+                <InfoRow label="Department" value={employee.department?.dpt_name} />
                 <InfoRow label="Employee ID" value={`EMP-${String(employee.emp_id).padStart(4, '0')}`} />
                 <InfoRow label="Member Since" value={formatDate(employee.created_at)} />
                 <InfoRow label="Status" value={<span className="text-emerald-600 font-medium">Active</span>} />

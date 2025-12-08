@@ -30,8 +30,9 @@ const navigate = useNavigate()
       roles: ['admin'],
       children: [
         { title: 'Employees', icon: Users, path: '/employee/dashboard/employees' },
-        { title: 'Departments', icon: Building2, path: '/employee/dashboard/departments' },
-        { title: 'Settings', icon: Settings, path: '/employee/dashboard/settings' }
+        { title: 'Departments', icon: Building2, path: '/employee/dashboard/department' },
+        {title: 'Trades', icon: Building2, path: '/employee/dashboard/trades'},
+      
       ]
     },
     {
@@ -85,7 +86,7 @@ const navigate = useNavigate()
     <>
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={onClose}
         />
       )}

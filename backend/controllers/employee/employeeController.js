@@ -1,8 +1,10 @@
 // controllers/employeeController.js
 
-const { Department, Employee } = require('../../model');
-const employeeValidator = require('../../validators/employeeValidator');
-const bcrypt = require('bcryptjs');
+const { generateSecurePassword } = require("../../middleware/employeeAuth");
+const { Department, Employee } = require("../../model");
+const emailService = require("../../services/emailService");
+const employeeValidator = require("../../validators/employeeValidator");
+const bcrypt = require("bcryptjs");
 
 const employeeController = {
   // CREATE - Add new employee
@@ -15,20 +17,20 @@ const employeeController = {
       if (!validation.isValid) {
         return res.status(400).json({
           success: false,
-          message: 'Validation failed',
-          errors: validation.errors
+          message: "Validation failed",
+          errors: validation.errors,
         });
       }
 
       // Check if email already exists
       const existingEmployee = await Employee.findOne({
-        where: { emp_email: employeeData.emp_email }
+        where: { emp_email: employeeData.emp_email },
       });
 
       if (existingEmployee) {
         return res.status(409).json({
           success: false,
-          message: 'Email already exists'
+          message: "Email already exists",
         });
       }
 
@@ -38,14 +40,14 @@ const employeeController = {
         if (!department) {
           return res.status(404).json({
             success: false,
-            message: 'Department not found'
+            message: "Department not found",
           });
         }
       }
 
       // Hash password
       const hashedPassword = await bcrypt.hash(employeeData.emp_password, 10);
-      const password =employeeData.emp_password
+      const password = employeeData.emp_password;
       employeeData.emp_password = hashedPassword;
 
       // Create employee
@@ -57,83 +59,112 @@ const employeeController = {
 
       return res.status(201).json({
         success: true,
-        message: 'Employee created successfully',
-        password:password,
-        data: employeeResponse
+        message: "Employee created successfully",
+        password: password,
+        data: employeeResponse,
       });
-
     } catch (error) {
-      console.error('Error creating employee:', error);
+      console.error("Error creating employee:", error);
       return res.status(500).json({
         success: false,
-        message: 'Internal server error',
-        error: error.message
+        message: "Internal server error",
+        error: error.message,
       });
     }
   },
   async createEmployee(req, res) {
-    try {
-      const employeeData = req.body;
-
-      // Validate input data
-      const validation = employeeValidator.validateEmployeeData(employeeData);
-      if (!validation.isValid) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: validation.errors
-        });
-      }
-
-      // Check if email already exists
-      const existingEmployee = await Employee.findOne({
-        where: { emp_email: employeeData.emp_email }
-      });
-
-      if (existingEmployee) {
-        return res.status(409).json({
-          success: false,
-          message: 'Email already exists'
-        });
-      }
-
-      // Check if department exists (if provided)
-      if (employeeData.dpt_id) {
-        const department = await Department.findByPk(employeeData.dpt_id);
-        if (!department) {
-          return res.status(404).json({
-            success: false,
-            message: 'Department not found'
-          });
-        }
-      }
-
-      // Hash password
-      const hashedPassword = await bcrypt.hash(employeeData.emp_password, 10);
-      employeeData.emp_password = hashedPassword;
-
-      // Create employee
-      const newEmployee = await Employee.create(employeeData);
-
-      // Remove password from response
-      const employeeResponse = newEmployee.toJSON();
-      delete employeeResponse.emp_password;
-
-      return res.status(201).json({
-        success: true,
-        message: 'Employee created successfully',
-        data: employeeResponse
-      });
-
-    } catch (error) {
-      console.error('Error creating employee:', error);
-      return res.status(500).json({
+  try {
+    const employeeData = req.body;
+    
+    // Remove password from body if provided (we'll generate it)
+    delete employeeData.emp_password;
+    
+    // Validate input data
+    const validation = employeeValidator.validateEmployeeData(employeeData);
+    if (!validation.isValid) {
+      return res.status(400).json({
         success: false,
-        message: 'Internal server error',
-        error: error.message
+        message: "Validation failed",
+        errors: validation.errors,
       });
     }
-  },
+    
+    // Check if email already exists
+    const existingEmployee = await Employee.findOne({
+      where: { emp_email: employeeData.emp_email },
+    });
+    
+    if (existingEmployee) {
+      return res.status(409).json({
+        success: false,
+        message: "Email already exists",
+      });
+    }
+    
+    // Check if department exists (if provided)
+    if (employeeData.dpt_id) {
+      const department = await Department.findByPk(employeeData.dpt_id);
+      if (!department) {
+        return res.status(404).json({
+          success: false,
+          message: "Department not found",
+        });
+      }
+    }
+    
+    // Generate secure random password
+    const generatedPassword = generateSecurePassword(12);
+    
+    // Send welcome email with credentials BEFORE creating user
+    try {
+      await emailService.sendEmail({
+        to: employeeData.emp_email,
+        subject: 'Welcome to Our Company - Your Account Details',
+        template: 'welcome',
+        company: process.env.EMAIL_FROM_NAME,
+        data: {
+          name: employeeData.emp_name,
+          email: employeeData.emp_email,
+          password: generatedPassword,
+          loginUrl: process.env.FRONTEND_URL || 'https://yourapp.com/login',
+          year: new Date().getFullYear(),
+        },
+      });
+    } catch (emailError) {
+      console.error('Error sending welcome email:', emailError);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to send welcome email. Employee not created.",
+        error: emailError.message,
+      });
+    }
+    
+    // Hash password
+    const hashedPassword = await bcrypt.hash(generatedPassword, 10);
+    employeeData.emp_password = hashedPassword;
+    
+    // Create employee
+    const newEmployee = await Employee.create(employeeData);
+    
+    // Remove password from response
+    const employeeResponse = newEmployee.toJSON();
+    delete employeeResponse.emp_password;
+    
+    return res.status(201).json({
+      success: true,
+      message: "Employee created successfully and welcome email sent",
+      data: employeeResponse,
+    });
+    
+  } catch (error) {
+    console.error("Error creating employee:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+},
 
   // READ - Get all employees
   async getAllEmployees(req, res) {
@@ -151,14 +182,17 @@ const employeeController = {
       // Fetch employees with pagination
       const { count, rows } = await Employee.findAndCountAll({
         where: whereClause,
-        attributes: { exclude: ['emp_password'] },
-        include: [{
-          model: Department,
-          attributes: ['dpt_id', 'dpt_name']
-        }],
+        attributes: { exclude: ["emp_password"] },
+        include: [
+          {
+            model: Department,
+            as:'department',
+            attributes: ["dpt_id", "dpt_name"],
+          },
+        ],
         limit: parseInt(limit),
         offset: parseInt(offset),
-        order: [['emp_id', 'DESC']]
+        order: [["emp_id", "DESC"]],
       });
 
       return res.status(200).json({
@@ -168,16 +202,15 @@ const employeeController = {
           total: count,
           page: parseInt(page),
           limit: parseInt(limit),
-          totalPages: Math.ceil(count / limit)
-        }
+          totalPages: Math.ceil(count / limit),
+        },
       });
-
     } catch (error) {
-      console.error('Error fetching employees:', error);
+      console.error("Error fetching employees:", error);
       return res.status(500).json({
         success: false,
-        message: 'Internal server error',
-        error: error.message
+        message: "Internal server error",
+        error: error.message,
       });
     }
   },
@@ -191,36 +224,39 @@ const employeeController = {
       if (!id || isNaN(id)) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid employee ID'
+          message: "Invalid employee ID",
         });
       }
 
       const employee = await Employee.findByPk(id, {
-        attributes: { exclude: ['emp_password'] },
-        include: [{
-          model: Department,
-          attributes: ['dpt_id', 'dpt_name']
-        }]
+        attributes: { exclude: ["emp_password"] },
+        include: [
+          {
+            model: Department,
+            as:'department',
+
+            attributes: ["dpt_id", "dpt_name"],
+          },
+        ],
       });
 
       if (!employee) {
         return res.status(404).json({
           success: false,
-          message: 'Employee not found'
+          message: "Employee not found",
         });
       }
 
       return res.status(200).json({
         success: true,
-        data: employee
+        data: employee,
       });
-
     } catch (error) {
-      console.error('Error fetching employee:', error);
+      console.error("Error fetching employee:", error);
       return res.status(500).json({
         success: false,
-        message: 'Internal server error',
-        error: error.message
+        message: "Internal server error",
+        error: error.message,
       });
     }
   },
@@ -235,7 +271,7 @@ const employeeController = {
       if (!id || isNaN(id)) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid employee ID'
+          message: "Invalid employee ID",
         });
       }
 
@@ -244,29 +280,32 @@ const employeeController = {
       if (!employee) {
         return res.status(404).json({
           success: false,
-          message: 'Employee not found'
+          message: "Employee not found",
         });
       }
 
       // Validate update data
-      const validation = employeeValidator.validateEmployeeData(updateData, true);
+      const validation = employeeValidator.validateEmployeeData(
+        updateData,
+        true
+      );
       if (!validation.isValid) {
         return res.status(400).json({
           success: false,
-          message: 'Validation failed',
-          errors: validation.errors
+          message: "Validation failed",
+          errors: validation.errors,
         });
       }
 
       // Check if email is being updated and already exists
       if (updateData.emp_email && updateData.emp_email !== employee.emp_email) {
         const existingEmployee = await Employee.findOne({
-          where: { emp_email: updateData.emp_email }
+          where: { emp_email: updateData.emp_email },
         });
         if (existingEmployee) {
           return res.status(409).json({
             success: false,
-            message: 'Email already exists'
+            message: "Email already exists",
           });
         }
       }
@@ -277,14 +316,17 @@ const employeeController = {
         if (!department) {
           return res.status(404).json({
             success: false,
-            message: 'Department not found'
+            message: "Department not found",
           });
         }
       }
 
       // Hash password if being updated
       if (updateData.emp_password) {
-        updateData.emp_password = await bcrypt.hash(updateData.emp_password, 10);
+        updateData.emp_password = await bcrypt.hash(
+          updateData.emp_password,
+          10
+        );
       }
 
       // Update employee
@@ -292,25 +334,27 @@ const employeeController = {
 
       // Fetch updated employee without password
       const updatedEmployee = await Employee.findByPk(id, {
-        attributes: { exclude: ['emp_password'] },
-        include: [{
-          model: Department,
-          attributes: ['dpt_id', 'dpt_name']
-        }]
+        attributes: { exclude: ["emp_password"] },
+        include: [
+          {
+            model: Department,
+            as:'department',
+            attributes: ["dpt_id", "dpt_name"],
+          },
+        ],
       });
 
       return res.status(200).json({
         success: true,
-        message: 'Employee updated successfully',
-        data: updatedEmployee
+        message: "Employee updated successfully",
+        data: updatedEmployee,
       });
-
     } catch (error) {
-      console.error('Error updating employee:', error);
+      console.error("Error updating employee:", error);
       return res.status(500).json({
         success: false,
-        message: 'Internal server error',
-        error: error.message
+        message: "Internal server error",
+        error: error.message,
       });
     }
   },
@@ -324,7 +368,7 @@ const employeeController = {
       if (!id || isNaN(id)) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid employee ID'
+          message: "Invalid employee ID",
         });
       }
 
@@ -333,7 +377,7 @@ const employeeController = {
       if (!employee) {
         return res.status(404).json({
           success: false,
-          message: 'Employee not found'
+          message: "Employee not found",
         });
       }
 
@@ -342,15 +386,14 @@ const employeeController = {
 
       return res.status(200).json({
         success: true,
-        message: 'Employee deleted successfully'
+        message: "Employee deleted successfully",
       });
-
     } catch (error) {
-      console.error('Error deleting employee:', error);
+      console.error("Error deleting employee:", error);
       return res.status(500).json({
         success: false,
-        message: 'Internal server error',
-        error: error.message
+        message: "Internal server error",
+        error: error.message,
       });
     }
   },
@@ -363,43 +406,45 @@ const employeeController = {
       if (!query || query.trim().length === 0) {
         return res.status(400).json({
           success: false,
-          message: 'Search query is required'
+          message: "Search query is required",
         });
       }
 
-      const { Op } = require('sequelize');
+      const { Op } = require("sequelize");
 
       const employees = await Employee.findAll({
         where: {
           [Op.or]: [
             { emp_name: { [Op.like]: `%${query}%` } },
             { emp_email: { [Op.like]: `%${query}%` } },
-            { emp_phoneNumber: { [Op.like]: `%${query}%` } }
-          ]
+            { emp_phoneNumber: { [Op.like]: `%${query}%` } },
+          ],
         },
-        attributes: { exclude: ['emp_password'] },
-        include: [{
-          model: Department,
-          attributes: ['dpt_id', 'dpt_name']
-        }],
-        limit: 20
+        attributes: { exclude: ["emp_password"] },
+        include: [
+          {
+            model: Department,
+            as:'department',
+            attributes: ["dpt_id", "dpt_name"],
+          },
+        ],
+        limit: 20,
       });
 
       return res.status(200).json({
         success: true,
         data: employees,
-        count: employees.length
+        count: employees.length,
       });
-
     } catch (error) {
-      console.error('Error searching employees:', error);
+      console.error("Error searching employees:", error);
       return res.status(500).json({
         success: false,
-        message: 'Internal server error',
-        error: error.message
+        message: "Internal server error",
+        error: error.message,
       });
     }
-  }
+  },
 };
 
 module.exports = employeeController;

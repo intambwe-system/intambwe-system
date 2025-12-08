@@ -1,25 +1,27 @@
-// models/Department.js
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/database");
 
-const Department = sequelize.define(
-  "Department",
+const Trade = sequelize.define(
+  "Trade",
   {
-    dpt_id: {
+    trade_id: {
       type: DataTypes.INTEGER,
       primaryKey: true,
       autoIncrement: true,
     },
-    dpt_name: {
+    trade_name: {
       type: DataTypes.STRING(100),
       allowNull: false,
-      unique: true,
+    },
+    trade_description: {
+      type: DataTypes.TEXT,
+      allowNull: true,
     },
   },
   {
-    tableName: "Department",
+    tableName: "Trade",
     timestamps: false,
   }
 );
 
-module.exports = Department;
+module.exports = Trade;
