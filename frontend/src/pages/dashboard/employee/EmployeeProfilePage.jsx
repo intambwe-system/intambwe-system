@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Mail, Phone, Briefcase, Building2, Edit2, Save, X, Eye, EyeOff, Lock, Calendar, Shield, MapPin, Info, Award } from 'lucide-react';
 import { useEmployeeAuth } from '../../../contexts/EmployeeAuthContext';
+import employeeAuthService from '../../../services/employeeAuthService';
 
 export default function EmployeeProfilePage() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -10,28 +11,16 @@ export default function EmployeeProfilePage() {
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
-const {employee} =useEmployeeAuth()
+  const { employee, loadProfile } = useEmployeeAuth();
 
-  const [formData, setFormData] = useState({ ...employee });
+  const [formData, setFormData] = useState({});
 
-  // Fetch employee data
+  // Synchronize local form with context employee when it becomes available
   useEffect(() => {
-    fetchEmployeeData();
-  }, []);
-
-  const fetchEmployeeData = async () => {
-    try {
-      // Replace with actual API call
-      // const response = await fetch('/api/employee/profile');
-      // const data = await response.json();
-      // setEmployee(data);
-      // setFormData(data);
-      
-      console.log('Fetching employee data...');
-    } catch (error) {
-      setErrorMessage('Failed to load employee data');
+    if (employee) {
+      setFormData({ ...employee, emp_password: '' });
     }
-  };
+  }, [employee]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -107,22 +96,28 @@ const {employee} =useEmployeeAuth()
       // if (!response.ok) throw new Error('Failed to update employee');
       // const updatedEmployee = await response.json();
 
-      // Mock successful update
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const updatedEmployee = {
-        ...employee,
-        ...updateData,
-        emp_password: ''
-      };
-      
-      setEmployee(updatedEmployee);
-      setFormData({ ...updatedEmployee, emp_password: '' });
-      setIsEditing(false);
-      setShowPassword(false);
-      setSuccessMessage('Profile updated successfully!');
-      
-      setTimeout(() => setSuccessMessage(''), 3000);
+      // Send update to backend
+      const resp = await employeeAuthService.updateProfile(employee.emp_id, updateData);
+
+      if (resp && resp.success) {
+        // Update local form immediately with returned data
+        const updated = resp.data;
+        setFormData({ ...updated, emp_password: '' });
+        setIsEditing(false);
+        setShowPassword(false);
+        setSuccessMessage('Profile updated successfully!');
+
+        // Refresh global profile in context
+        try {
+          await loadProfile();
+        } catch (_) {
+          // ignore refresh errors (local UI already updated)
+        }
+
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } else {
+        throw new Error(resp?.message || 'Update failed');
+      }
       
     } catch (error) {
       setErrorMessage(error.message || 'Failed to update profile. Please try again.');
