@@ -117,8 +117,7 @@ console.log(employee);
         ...updateData,
         emp_password: ''
       };
-      
-      setEmployee(updatedEmployee);
+     
       setFormData({ ...updatedEmployee, emp_password: '' });
       setIsEditing(false);
       setShowPassword(false);
