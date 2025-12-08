@@ -21,7 +21,7 @@ Department.hasMany(Student, { foreignKey: "dpt_id", onDelete: "SET NULL" });
 Department.hasMany(Subject, { foreignKey: "dpt_id", onDelete: "SET NULL" });
 
 // Employee Associations
-Employee.belongsTo(Department, { foreignKey: "dpt_id" });
+Employee.belongsTo(Department, { foreignKey: "dpt_id",as:'department' });
 Employee.hasMany(Class, {
   foreignKey: "emp_id",
   as: "classes",
