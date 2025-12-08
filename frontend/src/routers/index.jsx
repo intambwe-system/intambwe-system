@@ -1,5 +1,5 @@
-import React,{ Suspense } from "react";
-import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
+import React, { Suspense } from "react";
+import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
 import EmployeeDashboardLayout from "../layout/EmployeeDashboardLayout";
 import MainLayout from "../layout/MainLayout";
 import PrivateEmployeeRoute from "../layout/protectors/PrivateEmployeeRoute";
@@ -18,44 +18,48 @@ const LoadingSpinner = () => (
 );
 
 const SuspenseWrapper = ({ children }) => {
-  return <Suspense fallback={<LoadingSpinner />}>{children}</Suspense>
-}
+  return <Suspense fallback={<LoadingSpinner />}>{children}</Suspense>;
+};
 
 const router = createBrowserRouter([
-    {
-        path: "/",
-        element: <MainLayout></MainLayout>,
+  {
+    path: "/",
+    element: <MainLayout></MainLayout>,
+    children: [{ index: true, element: <Home /> }],
+  },
+  {
+    path: "/employee",
+    element: (
+      <PrivateEmployeeRoute>
+        <Outlet context={{ role: "employee" }} />
+      </PrivateEmployeeRoute>
+    ),
+    children: [
+      {
+        index: true,
+        element: <Navigate to={"/employee/dashboard"}></Navigate>,
+      },
+      {
+        path: "dashboard",
+        element: (
+          <SuspenseWrapper>
+            <EmployeeDashboardLayout role={"employee"} />{" "}
+          </SuspenseWrapper>
+        ),
         children: [
-            { index: true, element: <Home /> }
+          { index: true, element: <DashboardHomePage /> },
+          { path: "profile", element: <EmployeeProfilePage /> },
+          { path: "department", element: <DepartmentDashboard /> },
+          { path: "employees", element: <EmployeeManagementDashboard /> },
         ],
-    },
-    {
-        path: '/employee',
-        element: <PrivateEmployeeRoute><Outlet  context={{role:'employee'}} /></PrivateEmployeeRoute>,
-        children: [
-            { index: true, element: <Navigate to={'/employee/dashboard'}></Navigate> },
-            {
-                path: 'dashboard',
-                element: <SuspenseWrapper><EmployeeDashboardLayout role={'employee'} /> </SuspenseWrapper>,
-                children: [
-                    {index:true , element:<DashboardHomePage />},
-                    {path:'profile' , element:<EmployeeProfilePage />},
-                    {path:'department' , element:<DepartmentDashboard />},
-                    {path:'employees' , element:<EmployeeManagementDashboard />},
-
-
-                ],
-            }
-        ]
-    },
-    {
-        path: '/auth',
-        element: <Outlet />,
-        children: [
-            { path: 'employee/login', element: <EmployeeLogin /> }
-        ]
-    }
-])
-
+      },
+    ],
+  },
+  {
+    path: "/auth",
+    element: <Outlet />,
+    children: [{ path: "employee/login", element: <EmployeeLogin /> }],
+  },
+]);
 
 export default router;
