@@ -1,16 +1,21 @@
 // controllers/employeeAuthController.js
 
-const { Department, Employee } = require('../../model');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const { OAuth2Client } = require('google-auth-library');
-const { generateEmployeeAccessToken, generateEmployeeRefreshToken } = require('../../middleware/employeeAuth');
+const { Department, Employee } = require("../../model");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const { OAuth2Client } = require("google-auth-library");
+const {
+  generateEmployeeAccessToken,
+  generateEmployeeRefreshToken,
+} = require("../../middleware/employeeAuth");
 
 // JWT configuration
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key';
-const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
+const JWT_SECRET =
+  process.env.JWT_SECRET || "your-secret-key-change-in-production";
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "24h";
+const JWT_REFRESH_SECRET =
+  process.env.JWT_REFRESH_SECRET || "your-refresh-secret-key";
+const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || "7d";
 
 // Google OAuth configuration
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -18,85 +23,89 @@ const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 const employeeAuthController = {
   // LOGIN - Authenticate employee
- async login(req, res) {
-  try {
-    const { emp_email, emp_password } = req.body;
+  async login(req, res) {
+    try {
+      const { emp_email, emp_password } = req.body;
 
-    // Validate input
-    if (!emp_email || !emp_password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email and password are required'
-      });
-    }
-
-    // Find employee by email
-    const employee = await Employee.findOne({
-      where: { emp_email },
-      include: [{
-        model: Department,
-        attributes: ['dpt_id', 'dpt_name']
-      }]
-    });
-
-    if (!employee) {
-      return res.status(404).json({
-        success: false,
-        message: 'User doesnt exist'
-      });
-    }
-
-    // Verify password
-    const isPasswordValid = await bcrypt.compare(emp_password, employee.emp_password);
-    if (!isPasswordValid) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid password'
-      });
-    }
-
-    // Generate access token
-    const accessToken = await generateEmployeeAccessToken(employee)
-
-    // Generate refresh token
-    const refreshToken =  await generateEmployeeRefreshToken(employee)
-    // Set access token cookie
-    res.cookie('EmployeeAccessToken', accessToken, {
-      httpOnly: true,
-      sameSite: 'strict',
-      secure: true,
-      maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
-    });
-
-    // Set refresh token cookie
-    res.cookie('EmployeeRefreshToken', refreshToken, {
-      httpOnly: true,
-      sameSite: 'strict',
-      secure: true,
-      maxAge: 1000 * 60 * 60 * 24 * 30 // 30 days
-    });
-
-    // Prepare employee data (exclude password)
-    const employeeData = employee.toJSON();
-    delete employeeData.emp_password;
-
-    return res.status(200).json({
-      success: true,
-      message: 'Login successful',
-      data: {
-        employee: employeeData
+      // Validate input
+      if (!emp_email || !emp_password) {
+        return res.status(400).json({
+          success: false,
+          message: "Email and password are required",
+        });
       }
-    });
 
-  } catch (error) {
-    console.error('Error during login:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-      error: error.message
-    });
-  }
-},
+      // Find employee by email
+      const employee = await Employee.findOne({
+        where: { emp_email },
+        include: [
+          {
+            model: Department,
+            attributes: ["dpt_id", "dpt_name"],
+          },
+        ],
+      });
+
+      if (!employee) {
+        return res.status(404).json({
+          success: false,
+          message: "User doesnt exist",
+        });
+      }
+
+      // Verify password
+      const isPasswordValid = await bcrypt.compare(
+        emp_password,
+        employee.emp_password
+      );
+      if (!isPasswordValid) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid password",
+        });
+      }
+
+      // Generate access token
+      const accessToken = await generateEmployeeAccessToken(employee);
+
+      // Generate refresh token
+      const refreshToken = await generateEmployeeRefreshToken(employee);
+      // Set access token cookie
+      res.cookie("EmployeeAccessToken", accessToken, {
+        httpOnly: true,
+        sameSite: "strict",
+        secure: true,
+        maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+      });
+
+      // Set refresh token cookie
+      res.cookie("EmployeeRefreshToken", refreshToken, {
+        httpOnly: true,
+        sameSite: "strict",
+        secure: true,
+        maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days
+      });
+
+      // Prepare employee data (exclude password)
+      const employeeData = employee.toJSON();
+      delete employeeData.emp_password;
+
+      return res.status(200).json({
+        success: true,
+        message: "Login successful",
+        data: {
+          employee: employeeData,
+        },
+      });
+    } catch (error) {
+      console.error("Error during login:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error.message,
+      });
+    }
+  },
   // GOOGLE LOGIN - Authenticate with Google
   async googleLogin(req, res) {
     try {
@@ -105,7 +114,7 @@ const employeeAuthController = {
       if (!credential) {
         return res.status(400).json({
           success: false,
-          message: 'Google credential is required'
+          message: "Google credential is required",
         });
       }
 
@@ -114,12 +123,12 @@ const employeeAuthController = {
       try {
         ticket = await googleClient.verifyIdToken({
           idToken: credential,
-          audience: GOOGLE_CLIENT_ID
+          audience: GOOGLE_CLIENT_ID,
         });
       } catch (error) {
         return res.status(401).json({
           success: false,
-          message: 'Invalid Google token'
+          message: "Invalid Google token",
         });
       }
 
@@ -131,17 +140,20 @@ const employeeAuthController = {
       // Check if employee with this email exists in database
       const employee = await Employee.findOne({
         where: { emp_email: googleEmail },
-        include: [{
-          model: Department,
-          attributes: ['dpt_id', 'dpt_name']
-        }]
+        include: [
+          {
+            model: Department,
+            attributes: ["dpt_id", "dpt_name"],
+          },
+        ],
       });
 
       if (!employee) {
         return res.status(404).json({
           success: false,
-          message: 'No employee account found with this Google email. Please contact your administrator.',
-          googleEmail: googleEmail
+          message:
+            "No employee account found with this Google email. Please contact your administrator.",
+          googleEmail: googleEmail,
         });
       }
 
@@ -151,7 +163,7 @@ const employeeAuthController = {
           emp_id: employee.emp_id,
           emp_email: employee.emp_email,
           emp_role: employee.emp_role,
-          dpt_id: employee.dpt_id
+          dpt_id: employee.dpt_id,
         },
         JWT_SECRET,
         { expiresIn: JWT_EXPIRES_IN }
@@ -170,24 +182,23 @@ const employeeAuthController = {
 
       return res.status(200).json({
         success: true,
-        message: 'Google login successful',
+        message: "Google login successful",
         data: {
           employee: employeeData,
           accessToken,
           refreshToken,
           googleInfo: {
             name: googleName,
-            picture: googlePicture
-          }
-        }
+            picture: googlePicture,
+          },
+        },
       });
-
     } catch (error) {
-      console.error('Error during Google login:', error);
+      console.error("Error during Google login:", error);
       return res.status(500).json({
         success: false,
-        message: 'Internal server error',
-        error: error.message
+        message: "Internal server error",
+        error: error.message,
       });
     }
   },
@@ -200,7 +211,7 @@ const employeeAuthController = {
       if (!refreshToken) {
         return res.status(400).json({
           success: false,
-          message: 'Refresh token is required'
+          message: "Refresh token is required",
         });
       }
 
@@ -211,7 +222,7 @@ const employeeAuthController = {
       } catch (error) {
         return res.status(401).json({
           success: false,
-          message: 'Invalid or expired refresh token'
+          message: "Invalid or expired refresh token",
         });
       }
 
@@ -220,7 +231,7 @@ const employeeAuthController = {
       if (!employee) {
         return res.status(404).json({
           success: false,
-          message: 'Employee not found'
+          message: "Employee not found",
         });
       }
 
@@ -230,91 +241,91 @@ const employeeAuthController = {
           emp_id: employee.emp_id,
           emp_email: employee.emp_email,
           emp_role: employee.emp_role,
-          dpt_id: employee.dpt_id
+          dpt_id: employee.dpt_id,
         },
         JWT_SECRET,
         { expiresIn: JWT_EXPIRES_IN }
       );
 
-      console.log(' \n  REFRESHED TOKEN \n');
-      
+      console.log(" \n  REFRESHED TOKEN \n");
+
       return res.status(200).json({
         success: true,
-        message: 'Token refreshed successfully',
-        data: { accessToken }
+        message: "Token refreshed successfully",
+        data: { accessToken },
       });
-
     } catch (error) {
-      console.error('Error refreshing token:', error);
+      console.error("Error refreshing token:", error);
       return res.status(500).json({
         success: false,
-        message: 'Internal server error',
-        error: error.message
+        message: "Internal server error",
+        error: error.message,
       });
     }
   },
 
- async logout(req, res) {
-  try {
-    // Clear access token cookie
-    res.clearCookie('EmployeeAccessToken', {
-      httpOnly: true,
-      sameSite: 'strict',
-      secure: true
-    });
+  async logout(req, res) {
+    try {
+      // Clear access token cookie
+      res.clearCookie("EmployeeAccessToken", {
+        httpOnly: true,
+        sameSite: "strict",
+        secure: true,
+      });
 
-    // Clear refresh token cookie
-    res.clearCookie('EmployeeRefreshToken', {
-      httpOnly: true,
-      sameSite: 'strict',
-      secure: true
-    });
+      // Clear refresh token cookie
+      res.clearCookie("EmployeeRefreshToken", {
+        httpOnly: true,
+        sameSite: "strict",
+        secure: true,
+      });
 
-    return res.status(200).json({
-      success: true,
-      message: 'Logout successful'
-    });
-  } catch (error) {
-    console.error('Error during logout:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-      error: error.message
-    });
-  }
-},
+      return res.status(200).json({
+        success: true,
+        message: "Logout successful",
+      });
+    } catch (error) {
+      console.error("Error during logout:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error.message,
+      });
+    }
+  },
 
   // GET PROFILE - Get current authenticated employee
   async getProfile(req, res) {
     try {
       // Employee ID comes from auth middleware (req.employee)
       const employee = await Employee.findByPk(req.employee.emp_id, {
-        attributes: { exclude: ['emp_password'] },
-        include: [{
-          model: Department,
-          as:'department',
-          attributes: ['dpt_id', 'dpt_name']
-        }]
+        attributes: { exclude: ["emp_password"] },
+        include: [
+          {
+            model: Department,
+            as: "department",
+            attributes: ["dpt_id", "dpt_name"],
+          },
+        ],
       });
 
       if (!employee) {
         return res.status(404).json({
           success: false,
-          message: 'Employee not found'
+          message: "Employee not found",
         });
       }
 
       return res.status(200).json({
         success: true,
-        data: employee
+        data: employee,
       });
-
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error("Error fetching profile:", error);
       return res.status(500).json({
         success: false,
-        message: 'Internal server error',
-        error: error.message
+        message: "Internal server error",
+        error: error.message,
       });
     }
   },
@@ -328,7 +339,7 @@ const employeeAuthController = {
       if (!currentPassword || !newPassword) {
         return res.status(400).json({
           success: false,
-          message: 'Current password and new password are required'
+          message: "Current password and new password are required",
         });
       }
 
@@ -336,7 +347,7 @@ const employeeAuthController = {
       if (newPassword.length < 6) {
         return res.status(400).json({
           success: false,
-          message: 'New password must be at least 6 characters long'
+          message: "New password must be at least 6 characters long",
         });
       }
 
@@ -345,16 +356,19 @@ const employeeAuthController = {
       if (!employee) {
         return res.status(404).json({
           success: false,
-          message: 'Employee not found'
+          message: "Employee not found",
         });
       }
 
       // Verify current password
-      const isPasswordValid = await bcrypt.compare(currentPassword, employee.emp_password);
+      const isPasswordValid = await bcrypt.compare(
+        currentPassword,
+        employee.emp_password
+      );
       if (!isPasswordValid) {
         return res.status(401).json({
           success: false,
-          message: 'Current password is incorrect'
+          message: "Current password is incorrect",
         });
       }
 
@@ -366,15 +380,14 @@ const employeeAuthController = {
 
       return res.status(200).json({
         success: true,
-        message: 'Password changed successfully'
+        message: "Password changed successfully",
       });
-
     } catch (error) {
-      console.error('Error changing password:', error);
+      console.error("Error changing password:", error);
       return res.status(500).json({
         success: false,
-        message: 'Internal server error',
-        error: error.message
+        message: "Internal server error",
+        error: error.message,
       });
     }
   },
@@ -387,7 +400,7 @@ const employeeAuthController = {
       if (!emp_email) {
         return res.status(400).json({
           success: false,
-          message: 'Email is required'
+          message: "Email is required",
         });
       }
 
@@ -397,34 +410,31 @@ const employeeAuthController = {
         // Return success even if employee not found (security best practice)
         return res.status(200).json({
           success: true,
-          message: 'If the email exists, a password reset link has been sent'
+          message: "If the email exists, a password reset link has been sent",
         });
       }
 
       // Generate reset token
-      const resetToken = jwt.sign(
-        { emp_id: employee.emp_id },
-        JWT_SECRET,
-        { expiresIn: '1h' }
-      );
+      const resetToken = jwt.sign({ emp_id: employee.emp_id }, JWT_SECRET, {
+        expiresIn: "1h",
+      });
 
       // TODO: Send email with reset token
       // For now, return the token (in production, send via email)
-      console.log('Password reset token:', resetToken);
+      console.log("Password reset token:", resetToken);
 
       return res.status(200).json({
         success: true,
-        message: 'If the email exists, a password reset link has been sent',
+        message: "If the email exists, a password reset link has been sent",
         // Remove this in production:
-        resetToken: resetToken
+        resetToken: resetToken,
       });
-
     } catch (error) {
-      console.error('Error in forgot password:', error);
+      console.error("Error in forgot password:", error);
       return res.status(500).json({
         success: false,
-        message: 'Internal server error',
-        error: error.message
+        message: "Internal server error",
+        error: error.message,
       });
     }
   },
@@ -437,7 +447,7 @@ const employeeAuthController = {
       if (!resetToken || !newPassword) {
         return res.status(400).json({
           success: false,
-          message: 'Reset token and new password are required'
+          message: "Reset token and new password are required",
         });
       }
 
@@ -445,7 +455,7 @@ const employeeAuthController = {
       if (newPassword.length < 6) {
         return res.status(400).json({
           success: false,
-          message: 'New password must be at least 6 characters long'
+          message: "New password must be at least 6 characters long",
         });
       }
 
@@ -456,7 +466,7 @@ const employeeAuthController = {
       } catch (error) {
         return res.status(401).json({
           success: false,
-          message: 'Invalid or expired reset token'
+          message: "Invalid or expired reset token",
         });
       }
 
@@ -465,7 +475,7 @@ const employeeAuthController = {
       if (!employee) {
         return res.status(404).json({
           success: false,
-          message: 'Employee not found'
+          message: "Employee not found",
         });
       }
 
@@ -477,15 +487,14 @@ const employeeAuthController = {
 
       return res.status(200).json({
         success: true,
-        message: 'Password reset successfully'
+        message: "Password reset successfully",
       });
-
     } catch (error) {
-      console.error('Error resetting password:', error);
+      console.error("Error resetting password:", error);
       return res.status(500).json({
         success: false,
-        message: 'Internal server error',
-        error: error.message
+        message: "Internal server error",
+        error: error.message,
       });
     }
   },
@@ -496,19 +505,18 @@ const employeeAuthController = {
       // If this endpoint is reached, the auth middleware has already verified the token
       return res.status(200).json({
         success: true,
-        message: 'Token is valid',
-        data: req.employee
+        message: "Token is valid",
+        data: req.employee,
       });
-
     } catch (error) {
-      console.error('Error verifying token:', error);
+      console.error("Error verifying token:", error);
       return res.status(500).json({
         success: false,
-        message: 'Internal server error',
-        error: error.message
+        message: "Internal server error",
+        error: error.message,
       });
     }
-  }
+  },
 };
 
 module.exports = employeeAuthController;
