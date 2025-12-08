@@ -139,6 +139,7 @@ const employeeAuthController = {
         }]
       });
 
+      
       if (!employee) {
         return res.status(404).json({
           success: false,
