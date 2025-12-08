@@ -35,6 +35,7 @@ const employeeAuthController = {
       where: { emp_email },
       include: [{
         model: Department,
+        as:'department',
         attributes: ['dpt_id', 'dpt_name']
       }]
     });
@@ -133,6 +134,7 @@ const employeeAuthController = {
         where: { emp_email: googleEmail },
         include: [{
           model: Department,
+          as:'department',
           attributes: ['dpt_id', 'dpt_name']
         }]
       });
