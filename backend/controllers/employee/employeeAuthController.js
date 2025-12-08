@@ -41,6 +41,7 @@ const employeeAuthController = {
         include: [
           {
             model: Department,
+            as: "department",
             attributes: ["dpt_id", "dpt_name"],
           },
         ],
