@@ -177,20 +177,8 @@ export default function TradeManagementSystem() {
       textColor: 'text-emerald-600',
       bgColor: 'bg-emerald-50'
     },
-    {
-      label: 'With Description',
-      value: trades.filter(t => t.trade_description && t.trade_description.trim()).length,
-      icon: BookOpen,
-      textColor: 'text-purple-600',
-      bgColor: 'bg-purple-50'
-    },
-    {
-      label: 'Total Classes',
-      value: trades.reduce((sum, t) => sum + (t.classes?.length || 0), 0),
-      icon: Users,
-      textColor: 'text-orange-600',
-      bgColor: 'bg-orange-50'
-    }
+ 
+
   ];
 
   return (
@@ -302,7 +290,6 @@ export default function TradeManagementSystem() {
                     <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">ID</th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Trade Name</th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Description</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Classes</th>
                     <th className="px-6 py-4 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
@@ -339,14 +326,7 @@ export default function TradeManagementSystem() {
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <Users className="w-4 h-4 text-slate-400" />
-                            <span className="text-sm font-medium text-slate-900">
-                              {trade.classes?.length || 0} classes
-                            </span>
-                          </div>
-                        </td>
+                       
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-center gap-2">
                             <button
