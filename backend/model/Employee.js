@@ -41,6 +41,7 @@ const Employee = sequelize.define('Employee', {
     allowNull: true,
     references: {
       model: 'Department',
+      
       key: 'dpt_id'
     }
   }

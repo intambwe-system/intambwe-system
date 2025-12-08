@@ -4,6 +4,7 @@ const { Department, Employee } = require('../../model');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
+const { generateEmployeeAccessToken, generateEmployeeRefreshToken } = require('../../middleware/employeeAuth');
 
 // JWT configuration
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
@@ -17,86 +18,86 @@ const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 const employeeAuthController = {
   // LOGIN - Authenticate employee
-  async login(req, res) {
-    try {
-      const { emp_email, emp_password } = req.body;
+ async login(req, res) {
+  try {
+    const { emp_email, emp_password } = req.body;
 
-      // Validate input
-      if (!emp_email || !emp_password) {
-        return res.status(400).json({
-          success: false,
-          message: 'Email and password are required'
-        });
-      }
-
-      // Find employee by email
-      const employee = await Employee.findOne({
-        where: { emp_email },
-        include: [{
-          model: Department,
-          attributes: ['dpt_id', 'dpt_name']
-        }]
-      });
-
-      if (!employee) {
-        return res.status(404).json({
-          success: false,
-          message: 'User doesnt exist'
-        });
-      }
-
-      // Verify password
-      const isPasswordValid = await bcrypt.compare(emp_password, employee.emp_password);
-      if (!isPasswordValid) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid password'
-        });
-      }
-
-      // Generate access token
-      const accessToken = jwt.sign(
-        {
-          emp_id: employee.emp_id,
-          emp_email: employee.emp_email,
-          emp_role: employee.emp_role,
-          dpt_id: employee.dpt_id
-        },
-        JWT_SECRET,
-        { expiresIn: JWT_EXPIRES_IN }
-      );
-
-      // Generate refresh token
-      const refreshToken = jwt.sign(
-        { emp_id: employee.emp_id },
-        JWT_REFRESH_SECRET,
-        { expiresIn: JWT_REFRESH_EXPIRES_IN }
-      );
-
-      // Prepare employee data (exclude password)
-      const employeeData = employee.toJSON();
-      delete employeeData.emp_password;
-
-      return res.status(200).json({
-        success: true,
-        message: 'Login successful',
-        data: {
-          employee: employeeData,
-          accessToken,
-          refreshToken
-        }
-      });
-
-    } catch (error) {
-      console.error('Error during login:', error);
-      return res.status(500).json({
+    // Validate input
+    if (!emp_email || !emp_password) {
+      return res.status(400).json({
         success: false,
-        message: 'Internal server error',
-        error: error.message
+        message: 'Email and password are required'
       });
     }
-  },
 
+    // Find employee by email
+    const employee = await Employee.findOne({
+      where: { emp_email },
+      include: [{
+        model: Department,
+        as:'department',
+        attributes: ['dpt_id', 'dpt_name']
+      }]
+    });
+
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: 'User doesnt exist'
+      });
+    }
+
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(emp_password, employee.emp_password);
+    if (!isPasswordValid) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid password'
+      });
+    }
+
+    // Generate access token
+    const accessToken = await generateEmployeeAccessToken(employee)
+
+    // Generate refresh token
+    const refreshToken =  await generateEmployeeRefreshToken(employee)
+    // Set access token cookie
+    res.cookie('EmployeeAccessToken', accessToken, {
+      httpOnly: true,
+      sameSite: 'strict',
+      secure: true,
+      maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
+    });
+
+    // Set refresh token cookie
+    res.cookie('EmployeeRefreshToken', refreshToken, {
+      httpOnly: true,
+      sameSite: 'strict',
+      secure: true,
+      maxAge: 1000 * 60 * 60 * 24 * 30 // 30 days
+    });
+
+    // Prepare employee data (exclude password)
+    const employeeData = employee.toJSON();
+    delete employeeData.emp_password;
+
+    return res.status(200).json({
+      success: true,
+      message: 'Login successful',
+      data: {
+        employee: employeeData
+      }
+    });
+
+  } catch (error) {
+    console.error('Error during login:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+},
   // GOOGLE LOGIN - Authenticate with Google
   async googleLogin(req, res) {
     try {
@@ -133,10 +134,12 @@ const employeeAuthController = {
         where: { emp_email: googleEmail },
         include: [{
           model: Department,
+          as:'department',
           attributes: ['dpt_id', 'dpt_name']
         }]
       });
 
+      
       if (!employee) {
         return res.status(404).json({
           success: false,
@@ -254,26 +257,35 @@ const employeeAuthController = {
     }
   },
 
-  // LOGOUT - Invalidate tokens (client-side handling)
-  async logout(req, res) {
-    try {
-      // Note: With JWT, logout is typically handled client-side by removing tokens
-      // For server-side logout, you would need to implement a token blacklist
-      
-      return res.status(200).json({
-        success: true,
-        message: 'Logout successful'
-      });
+ async logout(req, res) {
+  try {
+    // Clear access token cookie
+    res.clearCookie('EmployeeAccessToken', {
+      httpOnly: true,
+      sameSite: 'strict',
+      secure: true
+    });
 
-    } catch (error) {
-      console.error('Error during logout:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Internal server error',
-        error: error.message
-      });
-    }
-  },
+    // Clear refresh token cookie
+    res.clearCookie('EmployeeRefreshToken', {
+      httpOnly: true,
+      sameSite: 'strict',
+      secure: true
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Logout successful'
+    });
+  } catch (error) {
+    console.error('Error during logout:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+},
 
   // GET PROFILE - Get current authenticated employee
   async getProfile(req, res) {
@@ -283,6 +295,7 @@ const employeeAuthController = {
         attributes: { exclude: ['emp_password'] },
         include: [{
           model: Department,
+          as:'department',
           attributes: ['dpt_id', 'dpt_name']
         }]
       });

@@ -8,7 +8,7 @@ const routeRoleMapping = {
   // Admin only routes
   '/employee/dashboard/users': ['admin'],
   '/employee/dashboard/employees': ['admin'],
-  '/employee/dashboard/departments': ['admin'],
+  '/employee/dashboard/department': ['admin'],
   '/employee/dashboard/settings': ['admin'],
   
   // Stock Manager routes
