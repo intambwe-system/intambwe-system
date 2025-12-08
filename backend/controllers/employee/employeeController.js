@@ -1,6 +1,8 @@
 // controllers/employeeController.js
 
+const { generateSecurePassword } = require("../../middleware/employeeAuth");
 const { Department, Employee } = require("../../model");
+const emailService = require("../../services/emailService");
 const employeeValidator = require("../../validators/employeeValidator");
 const bcrypt = require("bcryptjs");
 
@@ -71,67 +73,98 @@ const employeeController = {
     }
   },
   async createEmployee(req, res) {
-    try {
-      const employeeData = req.body;
-
-      // Validate input data
-      const validation = employeeValidator.validateEmployeeData(employeeData);
-      if (!validation.isValid) {
-        return res.status(400).json({
-          success: false,
-          message: "Validation failed",
-          errors: validation.errors,
-        });
-      }
-
-      // Check if email already exists
-      const existingEmployee = await Employee.findOne({
-        where: { emp_email: employeeData.emp_email },
-      });
-
-      if (existingEmployee) {
-        return res.status(409).json({
-          success: false,
-          message: "Email already exists",
-        });
-      }
-
-      // Check if department exists (if provided)
-      if (employeeData.dpt_id) {
-        const department = await Department.findByPk(employeeData.dpt_id);
-        if (!department) {
-          return res.status(404).json({
-            success: false,
-            message: "Department not found",
-          });
-        }
-      }
-
-      // Hash password
-      const hashedPassword = await bcrypt.hash(employeeData.emp_password, 10);
-      employeeData.emp_password = hashedPassword;
-
-      // Create employee
-      const newEmployee = await Employee.create(employeeData);
-
-      // Remove password from response
-      const employeeResponse = newEmployee.toJSON();
-      delete employeeResponse.emp_password;
-
-      return res.status(201).json({
-        success: true,
-        message: "Employee created successfully",
-        data: employeeResponse,
-      });
-    } catch (error) {
-      console.error("Error creating employee:", error);
-      return res.status(500).json({
+  try {
+    const employeeData = req.body;
+    
+    // Remove password from body if provided (we'll generate it)
+    delete employeeData.emp_password;
+    
+    // Validate input data
+    const validation = employeeValidator.validateEmployeeData(employeeData);
+    if (!validation.isValid) {
+      return res.status(400).json({
         success: false,
-        message: "Internal server error",
-        error: error.message,
+        message: "Validation failed",
+        errors: validation.errors,
       });
     }
-  },
+    
+    // Check if email already exists
+    const existingEmployee = await Employee.findOne({
+      where: { emp_email: employeeData.emp_email },
+    });
+    
+    if (existingEmployee) {
+      return res.status(409).json({
+        success: false,
+        message: "Email already exists",
+      });
+    }
+    
+    // Check if department exists (if provided)
+    if (employeeData.dpt_id) {
+      const department = await Department.findByPk(employeeData.dpt_id);
+      if (!department) {
+        return res.status(404).json({
+          success: false,
+          message: "Department not found",
+        });
+      }
+    }
+    
+    // Generate secure random password
+    const generatedPassword = generateSecurePassword(12);
+    
+    // Send welcome email with credentials BEFORE creating user
+    try {
+      await emailService.sendEmail({
+        to: employeeData.emp_email,
+        subject: 'Welcome to Our Company - Your Account Details',
+        template: 'welcome',
+        company: process.env.EMAIL_FROM_NAME,
+        data: {
+          name: employeeData.emp_name,
+          email: employeeData.emp_email,
+          password: generatedPassword,
+          loginUrl: process.env.FRONTEND_URL || 'https://yourapp.com/login',
+          year: new Date().getFullYear(),
+        },
+      });
+    } catch (emailError) {
+      console.error('Error sending welcome email:', emailError);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to send welcome email. Employee not created.",
+        error: emailError.message,
+      });
+    }
+    
+    // Hash password
+    const hashedPassword = await bcrypt.hash(generatedPassword, 10);
+    employeeData.emp_password = hashedPassword;
+    
+    // Create employee
+    const newEmployee = await Employee.create(employeeData);
+    
+    // Remove password from response
+    const employeeResponse = newEmployee.toJSON();
+    delete employeeResponse.emp_password;
+    
+    return res.status(201).json({
+      success: true,
+      message: "Employee created successfully and welcome email sent",
+      data: employeeResponse,
+    });
+    
+  } catch (error) {
+    console.error("Error creating employee:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+},
 
   // READ - Get all employees
   async getAllEmployees(req, res) {

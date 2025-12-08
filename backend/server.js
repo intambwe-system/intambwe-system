@@ -19,6 +19,7 @@ const subjectRoutes = require("./routes/subject/subjectRoutes");
 const timetableRoutes = require("./routes/timetable/timetableRoutes");
 const timetableEntryRoutes = require("./routes/timetableEntry/timetableEntryRoutes");
 const tradeRoutes = require("./routes/trade/tradeRoutes");
+const cookieParser = require('cookie-parser')
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -30,13 +31,14 @@ app.use(
     credentials: true,
   })
 );
+app.use(cookieParser())
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use("/api/employee", employeeRoute);
 app.use("/api/student", studentRoutes);
-3;
+
 
 // Newly added resource routes
 app.use("/api/attendance", attendanceRoutes);

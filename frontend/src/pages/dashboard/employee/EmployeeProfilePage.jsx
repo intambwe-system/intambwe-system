@@ -223,7 +223,7 @@ const {employee} =useEmployeeAuth()
                     <Building2 className="w-4 h-4 text-slate-400" />
                     <div>
                       <div className="text-xs text-slate-500">Department</div>
-                      <div className="text-sm font-medium text-slate-900">{employee.department_name}</div>
+                      <div className="text-sm font-medium text-slate-900">{employee.department.name}</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
