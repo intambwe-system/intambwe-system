@@ -31,6 +31,7 @@ const navigate = useNavigate()
       children: [
         { title: 'Employees', icon: Users, path: '/employee/dashboard/employees' },
         { title: 'Departments', icon: Building2, path: '/employee/dashboard/department' },
+        {title: 'Trades', icon: Building2, path: '/employee/dashboard/trades'},
       
       ]
     },

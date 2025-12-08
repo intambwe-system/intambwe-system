@@ -316,7 +316,8 @@ const EmployeeManagementDashboard = () => {
                 </div>
               </th>
               <th className="text-left py-3 px-4 text-gray-600 font-semibold hidden lg:table-cell">Gender</th>
-              <th className="text-left py-3 px-4 text-gray-600 font-semibold hidden md:table-cell">Contact</th>
+              <th className="text-left py-3 px-4 text-gray-600 font-semibold hidden md:table-cell">Phone Number</th>
+              <th className="text-left py-3 px-4 text-gray-600 font-semibold hidden md:table-cell">Email</th>
               <th className="text-right py-3 px-4 text-gray-600 font-semibold">Actions</th>
             </tr>
           </thead>
@@ -329,7 +330,7 @@ const EmployeeManagementDashboard = () => {
                 transition={{ duration: 0.3 }}
                 className="hover:bg-gray-50"
               >
-                <td className="py-3 px-4 text-gray-900">#{employee.emp_id}</td>
+                <td className="py-3 px-4 text-gray-900">{employee.emp_id}</td>
                 <td className="py-3 px-4 font-medium text-gray-900">{employee.emp_name}</td>
                 <td className="py-3 px-4">
                   <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleBadgeColor(employee.emp_role)}`}>
@@ -337,27 +338,25 @@ const EmployeeManagementDashboard = () => {
                   </span>
                 </td>
                 <td className="py-3 px-4 text-gray-600 hidden lg:table-cell">{employee.emp_gender}</td>
+                   <td>
+                    <div className="flex items-center gap-1 text-sm text-gray-900">
+                      <Phone className="w-4 h-4 text-gray-400" />
+                      {employee.emp_phoneNumber}
+                    </div>  
+                </td>
                 <td className="py-3 px-4 hidden md:table-cell">
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-1 text-sm text-gray-900">
                       <Mail className="w-4 h-4 text-gray-400" />
                       {employee.emp_email}
                     </div>
-                    <div className="flex items-center gap-1 text-sm text-gray-900">
-                      <Phone className="w-4 h-4 text-gray-400" />
-                      {employee.emp_phoneNumber}
-                    </div>
+                  
                   </div>
                 </td>
+             
                 <td className="py-3 px-4">
                   <div className="flex items-center justify-end space-x-2">
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      onClick={() => handleViewEmployee(employee)}
-                      className="text-gray-500 hover:text-primary-600 p-2 rounded-full hover:bg-primary-50 transition-colors"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </motion.button>
+                 
                     <motion.button
                       whileHover={{ scale: 1.1 }}
                       onClick={() => handleEditEmployee(employee)}
