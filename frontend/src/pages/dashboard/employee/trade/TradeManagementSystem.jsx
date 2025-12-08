@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Briefcase, Plus, Search, Edit2, Trash2, X, Save, Building2, Users, Award, RefreshCw, AlertCircle, CheckCircle, BookOpen, Loader } from 'lucide-react';
-import axios from 'axios';
+import {
+  Briefcase, Plus, Search, Edit2, Trash2, X, Save,
+  CheckCircle, AlertCircle, RefreshCw, Loader
+} from 'lucide-react';
+import tradeService from '../../../../services/tradeService'; // Adjust path as needed
 
 export default function TradeManagementSystem() {
   const [trades, setTrades] = useState([]);
@@ -19,15 +22,12 @@ export default function TradeManagementSystem() {
     trade_description: ''
   });
 
-  // API Base URL - Update this to match your backend
-  const API_BASE_URL = 'http://localhost:3000/api/trade'; // Change port if needed
-
-  // Fetch all trades on component mount
+  // Fetch all trades on mount
   useEffect(() => {
     fetchTrades();
   }, []);
 
-  // Filter trades based on search term
+  // Filter trades when search term or trades change
   useEffect(() => {
     if (searchTerm) {
       const filtered = trades.filter(trade =>
@@ -40,19 +40,19 @@ export default function TradeManagementSystem() {
     }
   }, [searchTerm, trades]);
 
-  // Fetch trades from backend
+  // Fetch trades using the service
   const fetchTrades = async () => {
     setIsFetching(true);
     try {
-      const response = await axios.get(API_BASE_URL);
-      
-      if (response.data.success) {
-        setTrades(response.data.data);
-        setFilteredTrades(response.data.data);
+      const res = await tradeService.getAllTrades();
+      // Assuming backend returns { success: true, data: [...] }
+      if (res.success !== false) {
+        setTrades(res.data || res);
+        setFilteredTrades(res.data || res);
       }
-    } catch (error) {
-      console.error('Error fetching trades:', error);
-      setErrorMessage(error.response?.data?.error || 'Failed to fetch trades');
+    } catch (err) {
+      console.error('Error fetching trades:', err);
+      setErrorMessage(err.message || 'Failed to fetch trades');
       setTimeout(() => setErrorMessage(''), 5000);
     } finally {
       setIsFetching(false);
@@ -73,11 +73,7 @@ export default function TradeManagementSystem() {
       });
       setIsEditing(true);
     } else {
-      setFormData({
-        trade_id: '',
-        trade_name: '',
-        trade_description: ''
-      });
+      setFormData({ trade_id: '', trade_name: '', trade_description: '' });
       setIsEditing(false);
     }
     setShowModal(true);
@@ -88,52 +84,36 @@ export default function TradeManagementSystem() {
   const handleCloseModal = () => {
     setShowModal(false);
     setIsEditing(false);
-    setFormData({
-      trade_id: '',
-      trade_name: '',
-      trade_description: ''
-    });
+    setFormData({ trade_id: '', trade_name: '', trade_description: '' });
     setErrorMessage('');
   };
 
   const handleSubmit = async () => {
+    if (!formData.trade_name.trim()) return;
+
     setIsLoading(true);
     setErrorMessage('');
 
     try {
-      // Prepare data for backend
-      const dataToSend = {
-        trade_name: formData.trade_name,
-        trade_description: formData.trade_description
+      const payload = {
+        trade_name: formData.trade_name.trim(),
+        trade_description: formData.trade_description.trim() || null
       };
 
-      let response;
-
       if (isEditing) {
-        // Update existing trade
-        response = await axios.put(`${API_BASE_URL}/${formData.trade_id}`, dataToSend);
+        await tradeService.updateTrade(formData.trade_id, payload);
         setSuccessMessage('Trade updated successfully!');
       } else {
-        // Create new trade
-        response = await axios.post(API_BASE_URL, dataToSend);
+        await tradeService.createTrade(payload);
         setSuccessMessage('Trade created successfully!');
       }
 
-      // Refresh the trades list
       await fetchTrades();
-      
       handleCloseModal();
       setTimeout(() => setSuccessMessage(''), 3000);
-      
-    } catch (error) {
-      console.error('Error saving trade:', error);
-      
-      // Handle validation errors
-      if (error.response?.data?.errors) {
-        setErrorMessage(error.response.data.errors.join(', '));
-      } else {
-        setErrorMessage(error.response?.data?.error || 'Failed to save trade');
-      }
+    } catch (err) {
+      console.error('Error saving trade:', err);
+      setErrorMessage(err.message || 'Failed to save trade');
     } finally {
       setIsLoading(false);
     }
@@ -146,16 +126,13 @@ export default function TradeManagementSystem() {
 
     setIsLoading(true);
     try {
-      await axios.delete(`${API_BASE_URL}/${tradeId}`);
+      await tradeService.deleteTrade(tradeId);
       setSuccessMessage('Trade deleted successfully!');
-      
-      // Refresh the trades list
       await fetchTrades();
-      
       setTimeout(() => setSuccessMessage(''), 3000);
-    } catch (error) {
-      console.error('Error deleting trade:', error);
-      setErrorMessage(error.response?.data?.error || 'Failed to delete trade');
+    } catch (err) {
+      console.error('Error deleting trade:', err);
+      setErrorMessage(err.message || 'Failed to delete trade');
       setTimeout(() => setErrorMessage(''), 5000);
     } finally {
       setIsLoading(false);
@@ -177,14 +154,13 @@ export default function TradeManagementSystem() {
       textColor: 'text-emerald-600',
       bgColor: 'bg-emerald-50'
     },
- 
-
   ];
 
   return (
     <div className="min-h-screen bg-slate-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        
+      <div className=" mx-auto">
+
+        {/* Success / Error Toasts */}
         {successMessage && (
           <div className="mb-6 bg-emerald-50 border-l-4 border-emerald-500 text-emerald-700 px-6 py-4 rounded-r-lg shadow-sm animate-fade-in">
             <div className="flex items-center gap-3">
@@ -203,6 +179,7 @@ export default function TradeManagementSystem() {
           </div>
         )}
 
+        {/* Header */}
         <div className="mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-2">
             <div>
@@ -223,6 +200,7 @@ export default function TradeManagementSystem() {
           </div>
         </div>
 
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {stats.map((stat, index) => {
             const Icon = stat.icon;
@@ -242,6 +220,7 @@ export default function TradeManagementSystem() {
           })}
         </div>
 
+        {/* Search & Refresh */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-6">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1 relative">
@@ -274,6 +253,7 @@ export default function TradeManagementSystem() {
           </div>
         </div>
 
+        {/* Table */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
           {isFetching ? (
             <div className="flex items-center justify-center py-12">
@@ -296,7 +276,7 @@ export default function TradeManagementSystem() {
                 <tbody className="divide-y divide-slate-200">
                   {filteredTrades.length === 0 ? (
                     <tr>
-                      <td colSpan="5" className="px-6 py-12 text-center">
+                      <td colSpan="4" className="px-6 py-12 text-center">
                         <div className="flex flex-col items-center gap-2 text-slate-500">
                           <Briefcase className="w-12 h-12 text-slate-300" />
                           <p className="text-lg font-medium">
@@ -326,7 +306,6 @@ export default function TradeManagementSystem() {
                             )}
                           </div>
                         </td>
-                       
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-center gap-2">
                             <button
@@ -356,8 +335,9 @@ export default function TradeManagementSystem() {
           )}
         </div>
 
+        {/* Modal */}
         {showModal && (
-          <div className="fixed inset-0 bg-white bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
               <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
                 <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">

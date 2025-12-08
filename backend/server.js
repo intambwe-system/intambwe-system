@@ -6,7 +6,7 @@ const cors = require("cors");
 require("dotenv").config();
 
 const db = require("./model");
-const employeeRoute = require("./routes/employee");
+const employeeRoute = require("./routes/attendance/employee");
 const studentRoutes = require("./routes/student");
 
 // New modular routes
@@ -19,7 +19,8 @@ const subjectRoutes = require("./routes/subject/subjectRoutes");
 const timetableRoutes = require("./routes/timetable/timetableRoutes");
 const timetableEntryRoutes = require("./routes/timetableEntry/timetableEntryRoutes");
 const tradeRoutes = require("./routes/trade/tradeRoutes");
-const cookieParser = require('cookie-parser')
+const cookieParser = require('cookie-parser');
+const morgan = require("morgan");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -34,6 +35,7 @@ app.use(
 app.use(cookieParser())
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(morgan('dev'))
 
 // Routes
 app.use("/api/employee", employeeRoute);

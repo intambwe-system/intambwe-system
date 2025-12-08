@@ -1,7 +1,7 @@
 // controllers/studentController.js
 
 
-const { Department, Student,Class } = require('../../model');
+const {  Student,Class } = require('../../model');
 const { Op } = require('sequelize');
 
 const studentController = {
@@ -52,16 +52,7 @@ const studentController = {
         }
       }
 
-      // Check if department exists (if provided)
-      if (studentData.dpt_id) {
-        const department = await Department.findByPk(studentData.dpt_id);
-        if (!department) {
-          return res.status(404).json({
-            success: false,
-            message: 'Department not found'
-          });
-        }
-      }
+   
 
       // Create student
       const newStudent = await Student.create(studentData);
@@ -112,10 +103,7 @@ const studentController = {
             model: Class,
             attributes: ['class_id', 'class_name']
           },
-          {
-            model: Department,
-            attributes: ['dpt_id', 'dpt_name']
-          }
+          
         ],
         limit: parseInt(limit),
         offset: parseInt(offset),
@@ -162,10 +150,7 @@ const studentController = {
             model: Class,
             attributes: ['class_id', 'class_name']
           },
-          {
-            model: Department,
-            attributes: ['dpt_id', 'dpt_name']
-          }
+          
         ]
       });
 
@@ -211,10 +196,7 @@ const studentController = {
             model: Class,
             attributes: ['class_id', 'class_name']
           },
-          {
-            model: Department,
-            attributes: ['dpt_id', 'dpt_name']
-          }
+          
         ],
         order: [['std_lname', 'ASC'], ['std_fname', 'ASC']]
       });
@@ -293,17 +275,7 @@ const studentController = {
         }
       }
 
-      // Check if department exists (if being updated)
-      if (updateData.dpt_id) {
-        const department = await Department.findByPk(updateData.dpt_id);
-        if (!department) {
-          return res.status(404).json({
-            success: false,
-            message: 'Department not found'
-          });
-        }
-      }
-
+      
       // Update student
       await student.update(updateData);
 
@@ -314,10 +286,7 @@ const studentController = {
             model: Class,
             attributes: ['class_id', 'class_name']
           },
-          {
-            model: Department,
-            attributes: ['dpt_id', 'dpt_name']
-          }
+          
         ]
       });
 
@@ -403,10 +372,7 @@ const studentController = {
             model: Class,
             attributes: ['class_id', 'class_name']
           },
-          {
-            model: Department,
-            attributes: ['dpt_id', 'dpt_name']
-          }
+          
         ],
         limit: 20,
         order: [['std_lname', 'ASC'], ['std_fname', 'ASC']]

@@ -1,5 +1,5 @@
 // controllers/studentAuthController.js
-const { Department, Student, Class } = require('../../model');
+const {  Student, Class } = require('../../model');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
@@ -190,10 +190,7 @@ const studentAuthController = {
             model: Class,
             attributes: ['class_id', 'class_name']
           },
-          {
-            model: Department,
-            attributes: ['dpt_id', 'dpt_name']
-          }
+       
         ]
       });
 
@@ -255,6 +252,8 @@ const studentAuthController = {
   async login(req, res) {
     try {
       const { std_email, std_password } = req.body;
+      console.log(req.body);
+      
 
       // Validate input
       if (!std_email || !std_password) {
@@ -272,10 +271,7 @@ const studentAuthController = {
             model: Class,
             attributes: ['class_id', 'class_name']
           },
-          {
-            model: Department,
-            attributes: ['dpt_id', 'dpt_name']
-          }
+        
         ]
       });
 
@@ -371,10 +367,7 @@ const studentAuthController = {
             model: Class,
             attributes: ['class_id', 'class_name']
           },
-          {
-            model: Department,
-            attributes: ['dpt_id', 'dpt_name']
-          }
+         
         ]
       });
 

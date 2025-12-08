@@ -64,7 +64,7 @@ const Attendance = sequelize.define('Attendance', {
   }
 }, {
   tableName: 'Attendance',
-  timestamps: false
+  timestamps: true,
 });
 
 module.exports = Attendance;
