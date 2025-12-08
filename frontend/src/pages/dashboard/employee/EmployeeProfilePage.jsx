@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, Mail, Phone, Briefcase, Building2, Edit2, Save, X, Eye, EyeOff, Lock, Calendar, Shield, MapPin, Info, Award } from 'lucide-react';
 import { useEmployeeAuth } from '../../../contexts/EmployeeAuthContext';
-import employeeAuthService from '../../../services/employeeAuthService';
 
 export default function EmployeeProfilePage() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -11,16 +10,30 @@ export default function EmployeeProfilePage() {
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
-  const { employee, loadProfile } = useEmployeeAuth();
+const {employee} =useEmployeeAuth()
+console.log(employee);
 
-  const [formData, setFormData] = useState({});
 
-  // Synchronize local form with context employee when it becomes available
+  const [formData, setFormData] = useState({ ...employee });
+
+  // Fetch employee data
   useEffect(() => {
-    if (employee) {
-      setFormData({ ...employee, emp_password: '' });
+    fetchEmployeeData();
+  }, []);
+
+  const fetchEmployeeData = async () => {
+    try {
+      // Replace with actual API call
+      // const response = await fetch('/api/employee/profile');
+      // const data = await response.json();
+      // setEmployee(data);
+      // setFormData(data);
+      
+      console.log('Fetching employee data...');
+    } catch (error) {
+      setErrorMessage('Failed to load employee data');
     }
-  }, [employee]);
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -96,29 +109,22 @@ export default function EmployeeProfilePage() {
       // if (!response.ok) throw new Error('Failed to update employee');
       // const updatedEmployee = await response.json();
 
-      // Send update to backend
-      const resp = await employeeAuthService.updateProfile(employee.emp_id, updateData);
-
-      if (resp && resp.success) {
-        // Update local form immediately with returned data
-        const updated = resp.data;
-        setFormData({ ...updated, emp_password: '' });
-        setIsEditing(false);
-        setShowPassword(false);
-        setSuccessMessage('Profile updated successfully!');
-
-        // Refresh global profile in context
-        try {
-          await loadProfile();
-        } catch (error) {
-          // ignore refresh errors (local UI already updated)
-          console.debug('Profile refresh skipped:', error.message);
-        }
-
-        setTimeout(() => setSuccessMessage(''), 3000);
-      } else {
-        throw new Error(resp?.message || 'Update failed');
-      }
+      // Mock successful update
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const updatedEmployee = {
+        ...employee,
+        ...updateData,
+        emp_password: ''
+      };
+      
+      setEmployee(updatedEmployee);
+      setFormData({ ...updatedEmployee, emp_password: '' });
+      setIsEditing(false);
+      setShowPassword(false);
+      setSuccessMessage('Profile updated successfully!');
+      
+      setTimeout(() => setSuccessMessage(''), 3000);
       
     } catch (error) {
       setErrorMessage(error.message || 'Failed to update profile. Please try again.');
@@ -219,7 +225,7 @@ export default function EmployeeProfilePage() {
                     <Building2 className="w-4 h-4 text-slate-400" />
                     <div>
                       <div className="text-xs text-slate-500">Department</div>
-                      <div className="text-sm font-medium text-slate-900">{employee.department?.dpt_name || employee.department_name || '—'}</div>
+                      <div className="text-sm font-medium text-slate-900">{employee.department?.dpt_name}</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
@@ -277,12 +283,12 @@ export default function EmployeeProfilePage() {
               <InfoCard title="Contact Information" icon={Phone}>
                 <InfoRow label="Email" value={employee.emp_email} icon={<Mail className="w-3.5 h-3.5" />} />
                 <InfoRow label="Phone" value={employee.emp_phoneNumber} icon={<Phone className="w-3.5 h-3.5" />} />
-                <InfoRow label="Address" value={employee.address} icon={<MapPin className="w-3.5 h-3.5" />} />
+
               </InfoCard>
 
               <InfoCard title="Work Information" icon={Building2}>
                 <InfoRow label="Role" value={employee.emp_role.replace('_', ' ').toUpperCase()} />
-                <InfoRow label="Department" value={employee.department?.dpt_name || employee.department_name || '—'} />
+                <InfoRow label="Department" value={employee.department?.dpt_name} />
                 <InfoRow label="Status" value={<span className="text-emerald-600 font-medium">Active</span>} />
               </InfoCard>
 
@@ -360,8 +366,7 @@ export default function EmployeeProfilePage() {
                     <button
                       onClick={handleCancel}
                       disabled={isLoading}
-                      className="flex items-center gap-2 bg-slate-100 text-slate-700 px-6 py-3 rounded-lg font-medium hover:bg-slate-200 transition-colors disabled:opacity-50"
-                    >
+                      className="flex items-center gap-2 bg-slate-100 text-slate-700 px-6 py-3 rounded-lg font-medium hover:bg-slate-200 transition-colors disabled:opacity-50">
                       <X className="w-5 h-5" />
                       Cancel
                     </button>
@@ -476,7 +481,7 @@ export default function EmployeeProfilePage() {
                   </p>
                 </div>
                 <InfoRow label="Role" value={employee.emp_role.replace('_', ' ').toUpperCase()} />
-                <InfoRow label="Department" value={employee.department?.dpt_name || employee.department_name || '—'} />
+                <InfoRow label="Department" value={employee.department?.dpt_name} />
                 <InfoRow label="Employee ID" value={`EMP-${String(employee.emp_id).padStart(4, '0')}`} />
                 <InfoRow label="Member Since" value={formatDate(employee.created_at)} />
                 <InfoRow label="Status" value={<span className="text-emerald-600 font-medium">Active</span>} />
