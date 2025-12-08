@@ -1,5 +1,5 @@
 // controllers/studentAuthController.js
-const { Department, Student,Class } = require('../../model');
+const { Department, Student, Class } = require('../../model');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
@@ -14,6 +14,60 @@ const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
 // Google OAuth configuration
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
+
+// Helper functions to generate tokens
+const generateStudentAccessToken = (student) => {
+  return jwt.sign(
+    {
+      std_id: student.std_id,
+      std_email: student.std_email,
+      class_id: student.class_id,
+      dpt_id: student.dpt_id
+    },
+    JWT_SECRET,
+    { expiresIn: JWT_EXPIRES_IN }
+  );
+};
+
+const generateStudentRefreshToken = (student) => {
+  return jwt.sign(
+    { std_id: student.std_id },
+    JWT_REFRESH_SECRET,
+    { expiresIn: JWT_REFRESH_EXPIRES_IN }
+  );
+};
+
+// Helper function to set auth cookies
+const setAuthCookies = (res, accessToken, refreshToken) => {
+  res.cookie('StudentAccessToken', accessToken, {
+    httpOnly: true,
+    sameSite: 'strict',
+    secure: true,
+    maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
+  });
+
+  res.cookie('StudentRefreshToken', refreshToken, {
+    httpOnly: true,
+    sameSite: 'strict',
+    secure: true,
+    maxAge: 1000 * 60 * 60 * 24 * 30 // 30 days
+  });
+};
+
+// Helper function to clear auth cookies
+const clearAuthCookies = (res) => {
+  res.clearCookie('StudentAccessToken', {
+    httpOnly: true,
+    sameSite: 'strict',
+    secure: true
+  });
+
+  res.clearCookie('StudentRefreshToken', {
+    httpOnly: true,
+    sameSite: 'strict',
+    secure: true
+  });
+};
 
 const studentAuthController = {
   // SETUP CREDENTIALS - Generate initial credentials for newly created student
@@ -76,7 +130,7 @@ const studentAuthController = {
       const tempPassword = crypto.randomBytes(8).toString('hex');
       const hashedPassword = await bcrypt.hash(tempPassword, 10);
 
-      // Store hashed password (you'll need to add std_password field to Student model)
+      // Store hashed password
       await student.update({ std_password: hashedPassword });
 
       // TODO: Send email with credentials
@@ -169,22 +223,11 @@ const studentAuthController = {
       });
 
       // Generate tokens
-      const accessToken = jwt.sign(
-        {
-          std_id: student.std_id,
-          std_email: student.std_email,
-          class_id: student.class_id,
-          dpt_id: student.dpt_id
-        },
-        JWT_SECRET,
-        { expiresIn: JWT_EXPIRES_IN }
-      );
+      const accessToken = generateStudentAccessToken(student);
+      const refreshToken = generateStudentRefreshToken(student);
 
-      const refreshToken = jwt.sign(
-        { std_id: student.std_id },
-        JWT_REFRESH_SECRET,
-        { expiresIn: JWT_REFRESH_EXPIRES_IN }
-      );
+      // Set cookies
+      setAuthCookies(res, accessToken, refreshToken);
 
       // Prepare student data (exclude password)
       const studentData = student.toJSON();
@@ -194,9 +237,7 @@ const studentAuthController = {
         success: true,
         message: 'Password set successfully. Welcome!',
         data: {
-          student: studentData,
-          accessToken,
-          refreshToken
+          student: studentData
         }
       });
 
@@ -263,22 +304,11 @@ const studentAuthController = {
       }
 
       // Generate tokens
-      const accessToken = jwt.sign(
-        {
-          std_id: student.std_id,
-          std_email: student.std_email,
-          class_id: student.class_id,
-          dpt_id: student.dpt_id
-        },
-        JWT_SECRET,
-        { expiresIn: JWT_EXPIRES_IN }
-      );
+      const accessToken = generateStudentAccessToken(student);
+      const refreshToken = generateStudentRefreshToken(student);
 
-      const refreshToken = jwt.sign(
-        { std_id: student.std_id },
-        JWT_REFRESH_SECRET,
-        { expiresIn: JWT_REFRESH_EXPIRES_IN }
-      );
+      // Set cookies
+      setAuthCookies(res, accessToken, refreshToken);
 
       // Prepare student data (exclude password)
       const studentData = student.toJSON();
@@ -288,9 +318,7 @@ const studentAuthController = {
         success: true,
         message: 'Login successful',
         data: {
-          student: studentData,
-          accessToken,
-          refreshToken
+          student: studentData
         }
       });
 
@@ -359,22 +387,11 @@ const studentAuthController = {
       }
 
       // Generate tokens
-      const accessToken = jwt.sign(
-        {
-          std_id: student.std_id,
-          std_email: student.std_email,
-          class_id: student.class_id,
-          dpt_id: student.dpt_id
-        },
-        JWT_SECRET,
-        { expiresIn: JWT_EXPIRES_IN }
-      );
+      const accessToken = generateStudentAccessToken(student);
+      const refreshToken = generateStudentRefreshToken(student);
 
-      const refreshToken = jwt.sign(
-        { std_id: student.std_id },
-        JWT_REFRESH_SECRET,
-        { expiresIn: JWT_REFRESH_EXPIRES_IN }
-      );
+      // Set cookies
+      setAuthCookies(res, accessToken, refreshToken);
 
       // Prepare student data (exclude password)
       const studentData = student.toJSON();
@@ -385,8 +402,6 @@ const studentAuthController = {
         message: 'Google login successful',
         data: {
           student: studentData,
-          accessToken,
-          refreshToken,
           googleInfo: {
             name: googleName,
             picture: googlePicture
@@ -404,10 +419,10 @@ const studentAuthController = {
     }
   },
 
-  // REFRESH TOKEN - Generate new access token
+  // REFRESH TOKEN - Generate new access token (not needed with auto-refresh middleware)
   async refreshToken(req, res) {
     try {
-      const { refreshToken } = req.body;
+      const refreshToken = req.cookies?.StudentRefreshToken;
 
       if (!refreshToken) {
         return res.status(400).json({
@@ -437,21 +452,19 @@ const studentAuthController = {
       }
 
       // Generate new access token
-      const accessToken = jwt.sign(
-        {
-          std_id: student.std_id,
-          std_email: student.std_email,
-          class_id: student.class_id,
-          dpt_id: student.dpt_id
-        },
-        JWT_SECRET,
-        { expiresIn: JWT_EXPIRES_IN }
-      );
+      const accessToken = generateStudentAccessToken(student);
+
+      // Update access token cookie
+      res.cookie('StudentAccessToken', accessToken, {
+        httpOnly: true,
+        sameSite: 'strict',
+        secure: true,
+        maxAge: 1000 * 60 * 60 * 24 * 7
+      });
 
       return res.status(200).json({
         success: true,
-        message: 'Token refreshed successfully',
-        data: { accessToken }
+        message: 'Token refreshed successfully'
       });
 
     } catch (error) {
@@ -464,9 +477,12 @@ const studentAuthController = {
     }
   },
 
-  // LOGOUT - Invalidate tokens
+  // LOGOUT - Clear authentication cookies
   async logout(req, res) {
     try {
+      // Clear cookies
+      clearAuthCookies(res);
+
       return res.status(200).json({
         success: true,
         message: 'Logout successful'

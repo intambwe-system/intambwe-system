@@ -3,62 +3,154 @@ const jwt = require('jsonwebtoken');
 const { Student } = require('../model');
 
 // Verify JWT token and attach student to request
-const authenticateStudent = async (req, res, next) => {
-  try {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
-    
-    if (!token) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Access token required' 
-      });
+// Middleware to verify access token and automatically refresh if expired
+const authenticateStudent = (req, res, next) => {
+    const accessToken = req.cookies?.StudentAccessToken;
+   
+    if (!accessToken) {
+        return res.status(403).json({ 
+            success: false,
+            message: 'Access token not found' 
+        });
     }
-
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    
-    // Fetch student details
-    const student = await Student.findByPk(decoded.std_id);
-    
-    if (!student) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Student not found' 
-      });
-    }
-
-    // Attach student to request
-    req.student = {
-      std_id: student.std_id,
-      std_fname: student.std_fname,
-      std_lname: student.std_lname,
-      std_email: student.std_email,
-      std_grade: student.std_grade,
-      class_id: student.class_id,
-      parent_id: student.parent_id,
-      dpt_id: student.dpt_id
-    };
-    
-    next();
-  } catch (error) {
-    if (error.name === 'JsonWebTokenError') {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Invalid token' 
-      });
-    }
-    if (error.name === 'TokenExpiredError') {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Token expired' 
-      });
-    }
-    return res.status(500).json({ 
-      success: false, 
-      message: 'Authentication error' 
+   
+    jwt.verify(accessToken, process.env.JWT_SECRET || 'your-secret-key', async (err, decoded) => {
+        // If token is valid, proceed normally
+        if (!err) {
+            try {
+                const student = await Student.findByPk(decoded.std_id);
+                
+                if (!student) {
+                    return res.status(404).json({ 
+                        success: false,
+                        message: 'Student not found' 
+                    });
+                }
+                
+                // Attach student to request
+                req.student = {
+                    std_id: student.std_id,
+                    std_fname: student.std_fname,
+                    std_lname: student.std_lname,
+                    std_email: student.std_email,
+                    std_grade: student.std_grade,
+                    class_id: student.class_id,
+                    parent_id: student.parent_id,
+                    dpt_id: student.dpt_id
+                };
+                
+                return next();
+            } catch (error) {
+                console.error('Error during authentication');
+                return res.status(500).json({ 
+                    success: false,
+                    message: 'Server error during authentication' 
+                });
+            }
+        }
+       
+        // If token is expired, try to use refresh token
+        if (err.name === 'TokenExpiredError') {
+            const refreshToken = req.cookies?.StudentRefreshToken;
+           
+            if (!refreshToken) {
+                return res.status(401).json({ 
+                    success: false,
+                    message: 'Refresh token not found, please login again' 
+                });
+            }
+           
+            // Verify refresh token
+            jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET || 'your-refresh-secret', async (refreshErr, refreshDecoded) => {
+                if (refreshErr) {
+                    return res.status(403).json({ 
+                        success: false,
+                        message: 'Invalid refresh token, please login again' 
+                    });
+                }
+               
+                try {
+                    // Find student from refresh token
+                    const student = await Student.findByPk(refreshDecoded.std_id);
+                   
+                    if (!student) {
+                        return res.status(404).json({ 
+                            success: false,
+                            message: 'Student not found' 
+                        });
+                    }
+                   
+                    // Generate new tokens
+                    const newAccessToken = await generateStudentAccessToken(student);
+                    const newRefreshToken = await generateStudentRefreshToken(student);
+                   
+                    // Set new cookies with improved settings
+                    res.cookie('StudentAccessToken', newAccessToken, {
+                        httpOnly: true,
+                        sameSite: 'strict',
+                        secure: true,
+                        maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
+                    });
+                   
+                    res.cookie('StudentRefreshToken', newRefreshToken, {
+                        httpOnly: true,
+                        sameSite: 'strict',
+                        secure: true,
+                        maxAge: 1000 * 60 * 60 * 24 * 30 // 30 days
+                    });
+                   
+                    // Attach student to request
+                    req.student = {
+                        std_id: student.std_id,
+                        std_fname: student.std_fname,
+                        std_lname: student.std_lname,
+                        std_email: student.std_email,
+                        std_grade: student.std_grade,
+                        class_id: student.class_id,
+                        parent_id: student.parent_id,
+                        dpt_id: student.dpt_id
+                    };
+                    
+                    next();
+                } catch (error) {
+                    console.error('Error during token refresh');
+                    return res.status(500).json({ 
+                        success: false,
+                        message: 'Server error during token refresh' 
+                    });
+                }
+            });
+        } else {
+            // For other token errors (not expiration)
+            return res.status(403).json({ 
+                success: false,
+                message: 'Authentication failed' 
+            });
+        }
     });
-  }
+};
+
+// Helper functions to generate tokens
+const generateStudentAccessToken = async (student) => {
+    return jwt.sign(
+        { 
+            std_id: student.std_id,
+            std_email: student.std_email,
+            std_grade: student.std_grade
+        },
+        process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: process.env.JWT_EXPIRES_IN }
+    );
+};
+
+const generateStudentRefreshToken = async (student) => {
+    return jwt.sign(
+        { 
+            std_id: student.std_id
+        },
+        process.env.JWT_REFRESH_SECRET || 'your-refresh-secret',
+       { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN }
+    );
 };
 
 // Check if student is accessing their own resource
