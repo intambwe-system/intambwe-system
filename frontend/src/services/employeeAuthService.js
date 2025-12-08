@@ -65,6 +65,18 @@ class EmployeeAuthService {
     }
   }
 
+  // UPDATE EMPLOYEE PROFILE
+  async updateProfile(empId, data) {
+    try {
+      const response = await api.put(`/employee/${empId}`, data);
+      return response.data;
+    } catch (error) {
+      const msg =
+        error.response?.data?.message || error.message || 'Failed to update profile';
+      throw new Error(msg);
+    }
+  }
+
   // CHANGE PASSWORD
   async changePassword(data) {
     try {
