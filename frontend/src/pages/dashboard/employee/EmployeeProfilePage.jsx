@@ -219,7 +219,7 @@ export default function EmployeeProfilePage() {
                     <Building2 className="w-4 h-4 text-slate-400" />
                     <div>
                       <div className="text-xs text-slate-500">Department</div>
-                      <div className="text-sm font-medium text-slate-900">{employee.department?.name}</div>
+                      <div className="text-sm font-medium text-slate-900">{employee.department?.dpt_name || employee.department_name || '—'}</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
@@ -282,7 +282,7 @@ export default function EmployeeProfilePage() {
 
               <InfoCard title="Work Information" icon={Building2}>
                 <InfoRow label="Role" value={employee.emp_role.replace('_', ' ').toUpperCase()} />
-                <InfoRow label="Department" value={employee.department?.name} />
+                <InfoRow label="Department" value={employee.department?.dpt_name || employee.department_name || '—'} />
                 <InfoRow label="Status" value={<span className="text-emerald-600 font-medium">Active</span>} />
               </InfoCard>
 
@@ -476,7 +476,7 @@ export default function EmployeeProfilePage() {
                   </p>
                 </div>
                 <InfoRow label="Role" value={employee.emp_role.replace('_', ' ').toUpperCase()} />
-                <InfoRow label="Department" value={employee.department?.name} />
+                <InfoRow label="Department" value={employee.department?.dpt_name || employee.department_name || '—'} />
                 <InfoRow label="Employee ID" value={`EMP-${String(employee.emp_id).padStart(4, '0')}`} />
                 <InfoRow label="Member Since" value={formatDate(employee.created_at)} />
                 <InfoRow label="Status" value={<span className="text-emerald-600 font-medium">Active</span>} />
