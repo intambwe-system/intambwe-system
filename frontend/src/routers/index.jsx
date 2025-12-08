@@ -9,6 +9,7 @@ import Home from "../pages/Home";
 import EmployeeProfilePage from "../pages/dashboard/employee/EmployeeProfilePage";
 import DepartmentDashboard from "../pages/dashboard/DepartmentPage";
 import EmployeeManagementDashboard from "../pages/dashboard/EmployeeManagement";
+import TradeManagementSystem from "../pages/dashboard/employee/trade/TradeManagementSystem";
 
 const LoadingSpinner = () => (
   <div className="loading-spinner">
