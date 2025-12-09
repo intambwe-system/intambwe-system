@@ -19,7 +19,10 @@ const subjectRoutes = require("./routes/subject/subjectRoutes");
 const timetableRoutes = require("./routes/timetable/timetableRoutes");
 const timetableEntryRoutes = require("./routes/timetableEntry/timetableEntryRoutes");
 const tradeRoutes = require("./routes/trade/tradeRoutes");
-const cookieParser = require('cookie-parser')
+const stockInRoutes = require("./routes/stockIn");
+
+
+const cookieParser = require('cookie-parser');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -31,14 +34,13 @@ app.use(
     credentials: true,
   })
 );
-app.use(cookieParser())
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use("/api/employee", employeeRoute);
 app.use("/api/student", studentRoutes);
-
 
 // Newly added resource routes
 app.use("/api/attendance", attendanceRoutes);
@@ -50,6 +52,10 @@ app.use("/api/subject", subjectRoutes);
 app.use("/api/timetable", timetableRoutes);
 app.use("/api/timetable-entry", timetableEntryRoutes);
 app.use("/api/trade", tradeRoutes);
+
+// Stock management routes
+app.use("/api/stockin", stockInRoutes);
+
 
 // Health check
 app.get("/", (req, res) => {
