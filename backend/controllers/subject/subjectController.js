@@ -1,4 +1,4 @@
-const { Subject, Department, Class, Employee } = require('../../model');
+const { Subject, Department, Class, Employee, Trade, SubjectTrade } = require('../../model');
 const { Op } = require('sequelize');
 const subjectValidator = require('../../validators/subjectValidator');
 
@@ -54,7 +54,26 @@ const subjectController = {
         }
       }
 
-      const subject = await Subject.create(data);
+      const { trade_ids, ...subjectData } = data;
+
+      const subject = await Subject.create(subjectData);
+
+      // Handle many-to-many Subject–Trade relation if trade_ids is provided
+      if (Array.isArray(trade_ids) && trade_ids.length > 0) {
+        // Validate trades exist
+        const trades = await Trade.findAll({ where: { trade_id: trade_ids } });
+        const foundIds = trades.map(t => t.trade_id);
+        const missing = trade_ids.filter(id => !foundIds.includes(id));
+        if (missing.length > 0) {
+          return res.status(404).json({
+            success: false,
+            message: `Some trades not found: ${missing.join(', ')}`,
+          });
+        }
+
+        const bulkRows = trade_ids.map(tradeId => ({ sbj_id: subject.sbj_id, trade_id: tradeId }));
+        await SubjectTrade.bulkCreate(bulkRows);
+      }
 
       return res.status(201).json({
         success: true,
@@ -92,7 +111,8 @@ const subjectController = {
         include: [
           { model: Department },
           { model: Class },
-          { model: Employee, as: 'teacher' }
+          { model: Employee, as: 'teacher' },
+          { model: Trade, as: 'trades', through: { attributes: [] } }
         ],
         order: [['sbj_name', 'ASC']]
       });
@@ -126,7 +146,8 @@ const subjectController = {
         include: [
           { model: Department },
           { model: Class },
-          { model: Employee, as: 'teacher' }
+          { model: Employee, as: 'teacher' },
+          { model: Trade, as: 'trades', through: { attributes: [] } }
         ]
       });
 
@@ -154,7 +175,7 @@ const subjectController = {
   async updateSubject(req, res) {
     try {
       const { id } = req.params;
-      const updateData = req.body;
+      const { trade_ids, ...updateData } = req.body;
 
       if (!id || isNaN(id)) {
         return res.status(400).json({
@@ -222,11 +243,33 @@ const subjectController = {
 
       await subject.update(updateData);
 
+      // Sync Subject–Trade relations if trade_ids is provided
+      if (Array.isArray(trade_ids)) {
+        // Clear existing relations
+        await SubjectTrade.destroy({ where: { sbj_id: subject.sbj_id } });
+
+        if (trade_ids.length > 0) {
+          const trades = await Trade.findAll({ where: { trade_id: trade_ids } });
+          const foundIds = trades.map(t => t.trade_id);
+          const missing = trade_ids.filter(id => !foundIds.includes(id));
+          if (missing.length > 0) {
+            return res.status(404).json({
+              success: false,
+              message: `Some trades not found: ${missing.join(', ')}`,
+            });
+          }
+
+          const bulkRows = trade_ids.map(tradeId => ({ sbj_id: subject.sbj_id, trade_id: tradeId }));
+          await SubjectTrade.bulkCreate(bulkRows);
+        }
+      }
+
       const updated = await Subject.findByPk(id, {
         include: [
           { model: Department },
           { model: Class },
-          { model: Employee, as: 'teacher' }
+          { model: Employee, as: 'teacher' },
+          { model: Trade, as: 'trades', through: { attributes: [] } }
         ]
       });
 
