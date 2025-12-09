@@ -8,7 +8,7 @@ const classValidator = {
       }
     }
 
-    if (!data.tradeId) errors.push("Trade id is required");
+    if (!data.trade_id) errors.push("Trade id is required");
 
     return {
       isValid: errors.length === 0,

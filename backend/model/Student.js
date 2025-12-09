@@ -32,7 +32,10 @@ const Student = sequelize.define('Student', {
     type: DataTypes.ENUM('Male', 'Female', 'Other'),
     allowNull: true
   },
- 
+   password: {
+    type: DataTypes.STRING(255),
+    allowNull: false
+  },
   class_id: {
     type: DataTypes.INTEGER,
     allowNull: true,

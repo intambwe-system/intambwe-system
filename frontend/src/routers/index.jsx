@@ -10,8 +10,9 @@ import EmployeeProfilePage from "../pages/dashboard/employee/EmployeeProfilePage
 import DepartmentDashboard from "../pages/dashboard/DepartmentPage";
 import EmployeeManagementDashboard from "../pages/dashboard/EmployeeManagement";
 import TradeManagementSystem from "../pages/dashboard/employee/trade/TradeManagementSystem";
-import StudentDashboard from "../pages/dashboard/StudentPage";
+
 import StudentManagementDashboard from "../pages/dashboard/StudentManagementDashboard";
+import ClassManagementDashboard from "../pages/dashboard/class/ClassManagement";
 
 const LoadingSpinner = () => (
   <div className="loading-spinner">
@@ -27,7 +28,7 @@ const SuspenseWrapper = ({ children }) => {
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <MainLayout></MainLayout>,
+    element: <MainLayout />,
     children: [{ index: true, element: <Home /> }],
   },
   {
@@ -40,13 +41,13 @@ const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Navigate to={"/employee/dashboard"}></Navigate>,
+        element: <Navigate to="/employee/dashboard" replace />,
       },
       {
         path: "dashboard",
         element: (
           <SuspenseWrapper>
-            <EmployeeDashboardLayout role={"employee"} />{" "}
+            <EmployeeDashboardLayout role="employee" />
           </SuspenseWrapper>
         ),
         children: [
@@ -56,6 +57,11 @@ const router = createBrowserRouter([
           { path: "employees", element: <EmployeeManagementDashboard /> },
           { path: "trades", element: <TradeManagementSystem /> },
           { path: "students", element: <StudentManagementDashboard /> },
+    
+          {
+            path: "classes",
+            element: <ClassManagementDashboard />,
+          },
         ],
       },
     ],
@@ -64,6 +70,10 @@ const router = createBrowserRouter([
     path: "/auth",
     element: <Outlet />,
     children: [{ path: "employee/login", element: <EmployeeLogin /> }],
+  },
+  {
+    path: "*",
+    element: <Navigate to="/" replace />,
   },
 ]);
 

@@ -1,4 +1,3 @@
-// src/pages/ClassManagementDashboard.jsx
 import React, { useState, useEffect, useMemo } from "react";
 import {
   BookOpen,
@@ -14,21 +13,15 @@ import {
   CheckCircle,
   XCircle,
   X,
-  AlertCircle,
-  Users,
-  Building2,
   RefreshCw,
-  Grid3X3,
   List,
-  User,
-  Briefcase,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Combobox } from "@headlessui/react";
-import classService from "../../services/classService";
-import tradeService from "../../services/tradeService";
-import departmentService from "../../services/departmentService";
-import employeeService from "../../services/employeeService";
+import classService from "../../../services/classService";
+import tradeService from "../../../services/tradeService";
+import departmentService from "../../../services/departmentService";
+import employeeService from "../../../services/employeeService";
 
 const ClassManagementDashboard = () => {
   const [classes, setClasses] = useState([]);
@@ -53,7 +46,6 @@ const ClassManagementDashboard = () => {
   const [selectedClass, setSelectedClass] = useState(null);
   const [formError, setFormError] = useState("");
 
-  // Form & Select state
   const [formData, setFormData] = useState({
     class_name: "",
     trade_id: "",
@@ -69,7 +61,6 @@ const ClassManagementDashboard = () => {
   const [deptQuery, setDeptQuery] = useState("");
   const [teacherQuery, setTeacherQuery] = useState("");
 
-  // Load all data
   useEffect(() => {
     loadAllData();
   }, []);
@@ -271,6 +262,8 @@ const ClassManagementDashboard = () => {
     currentPage * itemsPerPage
   );
 
+  console.log(currentItems);
+
   // Filtered Combobox Options
   const filteredTrades = useMemo(
     () =>
@@ -296,7 +289,6 @@ const ClassManagementDashboard = () => {
     [teachers, teacherQuery]
   );
 
-  // Reusable Combobox
   const SelectCombobox = ({
     value,
     onChange,
@@ -391,11 +383,11 @@ const ClassManagementDashboard = () => {
                   <ChevronDown className="w-4 h-4" />
                 </div>
               </th>
-              <th className="text-left py-3 px-4 text-gray-600 font-semibold">
-                Trade
-              </th>
               <th className="text-left py-3 px-4 text-gray-600 font-semibold hidden md:table-cell">
                 Department
+              </th>
+              <th className="text-left py-3 px-4 text-gray-600 font-semibold">
+                Trade
               </th>
               <th className="text-left py-3 px-4 text-gray-600 font-semibold hidden lg:table-cell">
                 Class Teacher
@@ -417,13 +409,13 @@ const ClassManagementDashboard = () => {
                 <td className="py-3 px-4 font-medium text-gray-900">
                   {cls.class_name}
                 </td>
+                <td className="py-3 px-4 text-gray-600 hidden md:table-cell">
+                  {cls.Department?.dpt_name || "—"}
+                </td>
                 <td className="py-3 px-4">
                   <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
                     {cls.Trade?.trade_name || "—"}
                   </span>
-                </td>
-                <td className="py-3 px-4 text-gray-600 hidden md:table-cell">
-                  {cls.Department?.dpt_name || "—"}
                 </td>
                 <td className="py-3 px-4 text-gray-600 hidden lg:table-cell">
                   {cls.Employee?.emp_name || "Not assigned"}
@@ -467,7 +459,7 @@ const ClassManagementDashboard = () => {
       {/* Header */}
       <div className="sticky top-0 bg-white shadow-md z-10">
         <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between rounded-md">
             <div>
               <h1 className="text-xl font-semibold text-gray-900">
                 Class Management
