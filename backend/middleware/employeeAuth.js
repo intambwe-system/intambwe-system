@@ -1,5 +1,6 @@
 // middleware/auth.js
 const jwt = require('jsonwebtoken');
+const crypto =  require('crypto')
 const {Employee} = require('../model');
 
 // Verify JWT token and attach employee to request
@@ -156,28 +157,9 @@ const generateEmployeeRefreshToken = async (employee) => {
  * @param {number} length - Length of password (default: 12)
  * @returns {string} - Generated password
  */
-const generateSecurePassword = (length = 12) => {
-  const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  const lowercase = 'abcdefghijklmnopqrstuvwxyz';
-  const numbers = '0123456789';
-  const symbols = '!@#$%^&*()_+-=[]{}|;:,.<>?';
-  
-  const allChars = uppercase + lowercase + numbers + symbols;
-  let password = '';
-  
-  // Ensure at least one character from each category
-  password += uppercase[Math.floor(Math.random() * uppercase.length)];
-  password += lowercase[Math.floor(Math.random() * lowercase.length)];
-  password += numbers[Math.floor(Math.random() * numbers.length)];
-  password += symbols[Math.floor(Math.random() * symbols.length)];
-  
-  // Fill the rest randomly
-  for (let i = password.length; i < length; i++) {
-    password += allChars[Math.floor(Math.random() * allChars.length)];
-  }
-  
-  // Shuffle the password
-  return password.split('').sort(() => Math.random() - 0.5).join('');
+
+function generateSecurePassword(length = 12) {
+  return crypto.randomBytes(length).toString('base64').slice(0, length);
 };
 
 

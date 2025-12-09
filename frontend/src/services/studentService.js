@@ -1,14 +1,12 @@
-import api from '../api/api'; // Assuming your api instance is correctly imported
+import api from '../api/api'; // Axios instance with JWT interceptor
 
 class StudentService {
-  
-  // -----------------------
-  // CREATE STUDENT (POST /student)
-  // -----------------------
+  // ---------------------------
+  // CREATE STUDENT
+  // ---------------------------
   async createStudent(data) {
     try {
-      // POST to /student
-      const response = await api.post('/student', data); 
+      const response = await api.post('/student', data);
       return response.data;
     } catch (error) {
       const msg =
@@ -19,13 +17,12 @@ class StudentService {
     }
   }
 
-  // -----------------------
-  // GET ALL STUDENTS (GET /student)
-  // -----------------------
-  async getAllStudents() {
+  // ---------------------------
+  // GET ALL STUDENTS (Filters + Pagination)
+  // ---------------------------
+  async getAllStudents(filters = {}) {
     try {
-      // GET from /student
-      const response = await api.get('/student');
+      const response = await api.get('/student', { params: filters });
       return response.data;
     } catch (error) {
       const msg =
@@ -36,29 +33,14 @@ class StudentService {
     }
   }
 
-  // -----------------------
-  // GET STUDENT BY ID (GET /student/:id)
-  // -----------------------
-  async getStudentById(id) {
-    try {
-      const response = await api.get(`/student/${id}`);
-      return response.data;
-    } catch (error) {
-      const msg =
-        error.response?.data?.message ||
-        error.message ||
-        'Failed to load student details';
-      throw new Error(msg);
-    }
-  }
-
-  // -----------------------
-  // SEARCH STUDENTS (GET /student/search)
-  // -----------------------
+  // ---------------------------
+  // SEARCH STUDENTS (?query=)
+  // ---------------------------
   async searchStudents(query) {
     try {
-      // Assumes the search term is passed as a query parameter (e.g., /student/search?q=query)
-      const response = await api.get(`/student/search?q=${query}`);
+      const response = await api.get('/student/search', {
+        params: { query },
+      });
       return response.data;
     } catch (error) {
       const msg =
@@ -69,9 +51,41 @@ class StudentService {
     }
   }
 
-  // -----------------------
-  // GET STUDENT STATS (GET /student/stats)
-  // -----------------------
+  // ---------------------------
+  // GET STUDENT BY ID
+  // ---------------------------
+  async getStudentById(id) {
+    try {
+      const response = await api.get(`/student/${id}`);
+      return response.data;
+    } catch (error) {
+      const msg =
+        error.response?.data?.message ||
+        error.message ||
+        'Failed to load student';
+      throw new Error(msg);
+    }
+  }
+
+  // ---------------------------
+  // GET STUDENTS BY CLASS
+  // ---------------------------
+  async getStudentsByClass(class_id) {
+    try {
+      const response = await api.get(`/student/class/${class_id}`);
+      return response.data;
+    } catch (error) {
+      const msg =
+        error.response?.data?.message ||
+        error.message ||
+        'Failed to load class students';
+      throw new Error(msg);
+    }
+  }
+
+  // ---------------------------
+  // GET STUDENT STATISTICS
+  // ---------------------------
   async getStudentStats() {
     try {
       const response = await api.get('/student/stats');
@@ -80,30 +94,14 @@ class StudentService {
       const msg =
         error.response?.data?.message ||
         error.message ||
-        'Failed to load student statistics';
-      throw new Error(msg);
-    }
-  }
-  
-  // -----------------------
-  // GET STUDENTS BY CLASS (GET /student/class/:class_id)
-  // -----------------------
-  async getStudentsByClass(classId) {
-    try {
-      const response = await api.get(`/student/class/${classId}`);
-      return response.data;
-    } catch (error) {
-      const msg =
-        error.response?.data?.message ||
-        error.message ||
-        'Failed to load students by class';
+        'Failed to fetch student statistics';
       throw new Error(msg);
     }
   }
 
-  // -----------------------
-  // UPDATE STUDENT (PUT /student/:id)
-  // -----------------------
+  // ---------------------------
+  // UPDATE STUDENT (PUT)
+  // ---------------------------
   async updateStudent(id, data) {
     try {
       const response = await api.put(`/student/${id}`, data);
@@ -117,9 +115,9 @@ class StudentService {
     }
   }
 
-  // -----------------------
-  // PARTIAL UPDATE (PATCH /student/:id)
-  // -----------------------
+  // ---------------------------
+  // PATCH STUDENT (Partial update)
+  // ---------------------------
   async patchStudent(id, data) {
     try {
       const response = await api.patch(`/student/${id}`, data);
@@ -128,14 +126,14 @@ class StudentService {
       const msg =
         error.response?.data?.message ||
         error.message ||
-        'Failed to partially update student';
+        'Failed to update student';
       throw new Error(msg);
     }
   }
 
-  // -----------------------
-  // DELETE STUDENT (DELETE /student/:id)
-  // -----------------------
+  // ---------------------------
+  // DELETE STUDENT
+  // ---------------------------
   async deleteStudent(id) {
     try {
       const response = await api.delete(`/student/${id}`);
@@ -153,14 +151,14 @@ class StudentService {
 const studentService = new StudentService();
 export default studentService;
 
-// Optional named exports for destructuring access
+// Optional named exports
 export const {
   createStudent,
   getAllStudents,
-  getStudentById,
   searchStudents,
-  getStudentStats,
+  getStudentById,
   getStudentsByClass,
+  getStudentStats,
   updateStudent,
   patchStudent,
   deleteStudent,

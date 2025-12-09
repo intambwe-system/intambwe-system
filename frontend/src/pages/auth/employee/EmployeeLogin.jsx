@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { useEmployeeAuth } from '../../../contexts/EmployeeAuthContext'; // Adjust path if needed
 import { useNavigate } from 'react-router-dom'; // Optional: for redirect after login
+import { useEffect } from 'react';
 
 export default function EmployeeLogin() {
   const [showPassword, setShowPassword] = useState(false);
@@ -10,8 +11,14 @@ export default function EmployeeLogin() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const { login, googleLogin } = useEmployeeAuth();
+  const { login, googleLogin, isAuthenticated ,loading:authLoading} = useEmployeeAuth();
   const navigate = useNavigate(); // Optional: redirect after successful login
+
+    useEffect(() => {
+    if (isAuthenticated && !authLoading) {
+      navigate('/employee/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, authLoading, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

@@ -8,6 +8,7 @@ class DepartmentService {
       return response.data;
     } catch (error) {
       const msg =
+      
         error.response?.data?.message ||
         error.message ||
         'Failed to create department';
