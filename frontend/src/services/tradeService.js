@@ -4,7 +4,7 @@ class TradeService {
   // CREATE TRADE
   async createTrade(data) {
     try {
-      const response = await api.post("/trade/createtrade", data);
+      const response = await api.post("/trade/", data);
       return response.data;
     } catch (error) {
       const msg =
@@ -18,7 +18,7 @@ class TradeService {
   // GET ALL TRADES
   async getAllTrades() {
     try {
-      const response = await api.get("/trade/gettrades");
+      const response = await api.get("/trade/");
       return response.data;
     } catch (error) {
       const msg =
@@ -32,7 +32,7 @@ class TradeService {
   // GET TRADE BY ID
   async getTradeById(id) {
     try {
-      const response = await api.get(`/trade/gettrade/${id}`);
+      const response = await api.get(`/trade/${id}`);
       return response.data;
     } catch (error) {
       const msg =
@@ -46,7 +46,7 @@ class TradeService {
   // UPDATE TRADE
   async updateTrade(id, data) {
     try {
-      const response = await api.put(`/trade/updatetrade/${id}`, data);
+      const response = await api.put(`/trade/${id}`, data);
       return response.data;
     } catch (error) {
       const msg =
@@ -60,7 +60,7 @@ class TradeService {
   // DELETE TRADE
   async deleteTrade(id) {
     try {
-      const response = await api.delete(`/trade/deletetrade/${id}`);
+      const response = await api.delete(`/trade/${id}`);
       return response.data;
     } catch (error) {
       const msg =

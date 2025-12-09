@@ -5,6 +5,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
 const { generateEmployeeAccessToken, generateEmployeeRefreshToken } = require('../../middleware/employeeAuth');
+const emailService = require('../../services/emailService');
 
 // JWT configuration
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
@@ -139,7 +140,7 @@ const employeeAuthController = {
         }]
       });
 
-      
+
       if (!employee) {
         return res.status(404).json({
           success: false,
@@ -413,6 +414,29 @@ const employeeAuthController = {
 
       // TODO: Send email with reset token
       // For now, return the token (in production, send via email)
+       // Send welcome email with credentials BEFORE creating user
+          try {
+            await emailService.sendEmail({
+              to: employee.emp_email,
+              subject: 'Welcome to Our Company - Your Account Details',
+              template: 'welcome',
+              company: process.env.EMAIL_FROM_NAME,
+              data: {
+                name: employee.emp_name,
+                email: employee.emp_email,
+                password: generatedPassword,
+                loginUrl: process.env.FRONTEND_URL || 'https://yourapp.com/login',
+                year: new Date().getFullYear(),
+              },
+            });
+          } catch (emailError) {
+            console.error('Error sending welcome email:', emailError);
+            return res.status(500).json({
+              success: false,
+              message: "Failed to send welcome email. Employee not created.",
+              error: emailError.message,
+            });
+          }
       console.log('Password reset token:', resetToken);
 
       return res.status(200).json({

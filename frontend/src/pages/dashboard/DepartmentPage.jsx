@@ -230,7 +230,7 @@ const DepartmentManagementDashboard = () => {
                 animate={{ opacity: 1 }}
                 className="hover:bg-gray-50"
               >
-                <td className="py-3 px-4 text-gray-600">#{dept.dpt_id}</td>
+                <td className="py-3 px-4 text-gray-600">{dept.dpt_id}</td>
                 <td className="py-3 px-4 font-medium text-gray-900">{dept.dpt_name}</td>
                 <td className="py-3 px-4 text-right">
                   <div className="flex justify-end space-x-2">
@@ -439,8 +439,7 @@ const DepartmentManagementDashboard = () => {
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="fixed top-4 right-4 z-50"
-            >
+              className="fixed top-4 right-4 z-50">
               <div className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg text-sm border ${
                 operationStatus.type === 'success'
                   ? 'bg-green-50 border-green-200 text-green-800'
@@ -462,8 +461,7 @@ const DepartmentManagementDashboard = () => {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="fixed inset-0 bg-black/30 flex items-center justify-center z-50"
-            >
+              className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
               <div className="bg-white rounded-lg p-6 shadow-xl">
                 <div className="flex items-center gap-3">
                   <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
