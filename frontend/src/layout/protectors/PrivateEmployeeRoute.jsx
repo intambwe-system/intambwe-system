@@ -92,9 +92,9 @@ const PrivateEmployeeRoute = ({ children }) => {
   }
 
   // Check role permissions
-  //   if (!checkRolePermission()) {
-  //     return <Navigate to="/employee/dashboard" replace />;
-  //   }
+    if (!checkRolePermission()) {
+      return <Navigate to="/employee/dashboard" replace />;
+    }
 
   // All checks passed, render children
   return children;

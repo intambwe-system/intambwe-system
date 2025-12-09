@@ -8,6 +8,10 @@ const Student = sequelize.define('Student', {
     primaryKey: true,
     autoIncrement: true
   },
+  std_image:{
+ type: DataTypes.STRING(200),
+    allowNull: false
+  },
   std_fname: {
     type: DataTypes.STRING(50),
     allowNull: false
