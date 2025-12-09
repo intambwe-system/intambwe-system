@@ -32,7 +32,7 @@ class TradeService {
   // GET TRADE BY ID
   async getTradeById(id) {
     try {
-      const response = await api.get(`/trade/${id}`);
+      const response = await api.get(`/trade/gettrade/${id}`);
       return response.data;
     } catch (error) {
       const msg =
@@ -79,7 +79,6 @@ export default tradeService;
 export const {
   createTrade,
   getAllTrades,
-  getTradeById,
   updateTrade,
   deleteTrade,
 } = tradeService;
