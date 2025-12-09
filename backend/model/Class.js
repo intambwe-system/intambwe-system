@@ -41,7 +41,7 @@ const Class = sequelize.define(
   },
   {
     tableName: "Class",
-    timestamps: false,
+    timestamps: true,
   }
 );
 
