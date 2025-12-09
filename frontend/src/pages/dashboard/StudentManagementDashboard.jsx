@@ -1,12 +1,12 @@
+// src/pages/StudentManagementDashboard.jsx
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Users, Plus, Search, Edit, Trash2, Eye, ChevronDown, ChevronLeft, ChevronRight,
-  AlertTriangle, CheckCircle, XCircle, X, AlertCircle, RefreshCw,
-  Filter, Grid3X3, List, User, Calendar, Phone, Mail, School
+  Users, Plus, Search, Edit, Trash2, ChevronDown, ChevronLeft, ChevronRight,
+  AlertTriangle, CheckCircle, XCircle, X, RefreshCw,
+  Grid3X3, List, User, Calendar, Phone, Mail, School
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Combobox } from '@headlessui/react';
-
 import studentService from '../../services/studentService';
 import classService from '../../services/classService';
 
@@ -17,7 +17,7 @@ const StudentManagementDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState('student_name');
+  const [sortBy, setSortBy] = useState('std_fname');
   const [sortOrder, setSortOrder] = useState('asc');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
@@ -30,17 +30,19 @@ const StudentManagementDashboard = () => {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [classQuery, setClassQuery] = useState('');
   const [selectedClass, setSelectedClass] = useState(null);
+
   const [formData, setFormData] = useState({
-    student_name: '',
-    student_gender: 'Male',
-    student_email: '',
-    student_phone: '',
-    student_dob: '',
+    std_fname: '',
+    std_lname: '',
+    std_email: '',
+    std_phoneNumber: '',
+    std_dob: '',
+    std_gender: 'Male',
     class_id: ''
   });
+
   const [formError, setFormError] = useState('');
 
-  // Load data
   useEffect(() => {
     loadStudents();
     loadClasses();
@@ -50,7 +52,7 @@ const StudentManagementDashboard = () => {
     try {
       setLoading(true);
       const res = await studentService.getAllStudents();
-      const data = res.data || res;
+      const data = Array.isArray(res) ? res : res.data || [];
       setAllStudents(data);
       setStudents(data);
       setError(null);
@@ -65,7 +67,8 @@ const StudentManagementDashboard = () => {
   const loadClasses = async () => {
     try {
       const res = await classService.getAllClasses();
-      setClasses(res.data || res);
+      const data = Array.isArray(res) ? res : res.data || [];
+      setClasses(data);
     } catch (err) {
       console.error('Failed to load classes:', err);
     }
@@ -75,24 +78,29 @@ const StudentManagementDashboard = () => {
     await Promise.all([loadStudents(), loadClasses()]);
   };
 
-  // Filter & Sort
   useEffect(() => {
     let filtered = [...allStudents];
 
     if (searchTerm) {
+      const term = searchTerm.toLowerCase();
       filtered = filtered.filter(s =>
-        s.student_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.student_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.student_phone?.includes(searchTerm)
+        `${s.std_fname} ${s.std_lname}`.toLowerCase().includes(term) ||
+        s.std_email?.toLowerCase().includes(term) ||
+        s.std_phoneNumber?.includes(term)
       );
     }
 
     filtered.sort((a, b) => {
-      const aVal = (a[sortBy] || '').toString().toLowerCase();
-      const bVal = (b[sortBy] || '').toString().toLowerCase();
-      return sortOrder === 'asc'
-        ? aVal.localeCompare(bVal)
-        : bVal.localeCompare(aVal);
+      let aVal = a[sortBy] || '';
+      let bVal = b[sortBy] || '';
+      if (sortBy === 'std_fname') {
+        aVal = `${a.std_fname} ${a.std_lname}`.toLowerCase();
+        bVal = `${b.std_fname} ${b.std_lname}`.toLowerCase();
+      } else {
+        aVal = aVal.toString().toLowerCase();
+        bVal = bVal.toString().toLowerCase();
+      }
+      return sortOrder === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
     });
 
     setStudents(filtered);
@@ -104,10 +112,9 @@ const StudentManagementDashboard = () => {
     setTimeout(() => setOperationStatus(null), duration);
   };
 
-  // Stats
   const totalStudents = allStudents.length;
-  const boys = allStudents.filter(s => s.student_gender === 'Male').length;
-  const girls = allStudents.filter(s => s.student_gender === 'Female').length;
+  const boys = allStudents.filter(s => s.std_gender === 'Male').length;
+  const girls = allStudents.filter(s => s.std_gender === 'Female').length;
 
   const filteredClasses = useMemo(() => {
     return classes.filter(c =>
@@ -115,14 +122,14 @@ const StudentManagementDashboard = () => {
     );
   }, [classes, classQuery]);
 
-  // CRUD Handlers
   const handleAddStudent = () => {
     setFormData({
-      student_name: '',
-      student_gender: 'Male',
-      student_email: '',
-      student_phone: '',
-      student_dob: '',
+      std_fname: '',
+      std_lname: '',
+      std_email: '',
+      std_phoneNumber: '',
+      std_dob: '',
+      std_gender: 'Male',
       class_id: ''
     });
     setSelectedClass(null);
@@ -137,22 +144,21 @@ const StudentManagementDashboard = () => {
 
   const handleCreate = async (e) => {
     e.preventDefault();
-    if (!formData.student_name || !formData.student_email || !selectedClass) {
-      setFormError('Name, email, and class are required');
+    if (!formData.std_fname || !formData.std_lname) {
+      setFormError('First name and last name are required');
       return;
     }
-
     try {
       setOperationLoading(true);
       await studentService.createStudent({
         ...formData,
-        class_id: selectedClass.class_id
+        class_id: selectedClass?.class_id || null
       });
       await loadStudents();
       setShowAddModal(false);
-      showToast('success', `${formData.student_name} added successfully!`);
+      showToast('success', `${formData.std_fname} ${formData.std_lname} added successfully!`);
     } catch (err) {
-      setFormError(err.message);
+      setFormError(err.message || 'Failed to create student');
     } finally {
       setOperationLoading(false);
     }
@@ -163,11 +169,12 @@ const StudentManagementDashboard = () => {
     const cls = classes.find(c => c.class_id === student.class_id);
     setSelectedClass(cls || null);
     setFormData({
-      student_name: student.student_name || '',
-      student_gender: student.student_gender || 'Male',
-      student_email: student.student_email || '',
-      student_phone: student.student_phone || '',
-      student_dob: student.student_dob || '',
+      std_fname: student.std_fname || '',
+      std_lname: student.std_lname || '',
+      std_email: student.std_email || '',
+      std_phoneNumber: student.std_phoneNumber || '',
+      std_dob: student.std_dob || '',
+      std_gender: student.std_gender || 'Male',
       class_id: student.class_id || ''
     });
     setFormError('');
@@ -176,22 +183,21 @@ const StudentManagementDashboard = () => {
 
   const handleUpdate = async (e) => {
     e.preventDefault();
-    if (!formData.student_name || !formData.student_email || !selectedClass) {
-      setFormError('Name, email, and class are required');
+    if (!formData.std_fname || !formData.std_lname) {
+      setFormError('First name and last name are required');
       return;
     }
-
     try {
       setOperationLoading(true);
-      await studentService.updateStudent(selectedStudent.student_id, {
+      await studentService.updateStudent(selectedStudent.std_id, {
         ...formData,
-        class_id: selectedClass.class_id
+        class_id: selectedClass?.class_id || null
       });
       await loadStudents();
       setShowUpdateModal(false);
-      showToast('success', `${formData.student_name} updated successfully!`);
+      showToast('success', `${formData.std_fname} ${formData.std_lname} updated successfully!`);
     } catch (err) {
-      setFormError(err.message);
+      setFormError(err.message || 'Failed to update student');
     } finally {
       setOperationLoading(false);
     }
@@ -200,10 +206,10 @@ const StudentManagementDashboard = () => {
   const handleDelete = async (student) => {
     try {
       setOperationLoading(true);
-      await studentService.deleteStudent(student.student_id);
+      await studentService.deleteStudent(student.std_id);
       await loadStudents();
       setDeleteConfirm(null);
-      showToast('success', `${student.student_name} deleted successfully`);
+      showToast('success', `${student.std_fname} ${student.std_lname} deleted successfully`);
     } catch (err) {
       showToast('error', err.message || 'Failed to delete student');
     } finally {
@@ -211,12 +217,21 @@ const StudentManagementDashboard = () => {
     }
   };
 
-  // Pagination
+  const getFullName = (s) => `${s.std_fname} ${s.std_lname}`;
+  const getClassName = (id) => classes.find(c => c.class_id === id)?.class_name || '-';
+
   const totalPages = Math.ceil(students.length / itemsPerPage);
   const startIdx = (currentPage - 1) * itemsPerPage;
   const currentStudents = students.slice(startIdx, startIdx + itemsPerPage);
 
-  // Reusable Class Combobox
+  const getGenderColor = (gender) => {
+    return gender === 'Male'
+      ? 'bg-blue-100 text-blue-800'
+      : gender === 'Female'
+      ? 'bg-pink-100 text-pink-800'
+      : 'bg-gray-100 text-gray-800';
+  };
+
   const ClassSelect = ({ value, onChange }) => (
     <Combobox value={value} onChange={onChange}>
       <div className="relative">
@@ -232,7 +247,6 @@ const StudentManagementDashboard = () => {
         <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-3 mt-6">
           <ChevronDown className="w-5 h-5 text-gray-400" />
         </Combobox.Button>
-
         <AnimatePresence>
           {filteredClasses.length > 0 && (
             <Combobox.Options className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5">
@@ -264,14 +278,6 @@ const StudentManagementDashboard = () => {
       </div>
     </Combobox>
   );
-
-  const getGenderColor = (gender) => {
-    return gender === 'Male'
-      ? 'bg-blue-100 text-blue-800'
-      : gender === 'Female'
-      ? 'bg-pink-100 text-pink-800'
-      : 'bg-gray-100 text-gray-800';
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -307,7 +313,6 @@ const StudentManagementDashboard = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
@@ -350,7 +355,6 @@ const StudentManagementDashboard = () => {
                 />
               </div>
             </div>
-
             <div className="flex items-center gap-3">
               <select
                 value={`${sortBy}-${sortOrder}`}
@@ -361,12 +365,11 @@ const StudentManagementDashboard = () => {
                 }}
                 className="px-4 py-2 border border-gray-300 rounded-lg text-sm"
               >
-                <option value="student_name-asc">Name (A-Z)</option>
-                <option value="student_name-desc">Name (Z-A)</option>
-                <option value="student_email-asc">Email (A-Z)</option>
-                <option value="student_email-desc">Email (Z-A)</option>
+                <option value="std_fname-asc">Name (A-Z)</option>
+                <option value="std_fname-desc">Name (Z-A)</option>
+                <option value="std_email-asc">Email (A-Z)</option>
+                <option value="std_email-desc">Email (Z-A)</option>
               </select>
-
               <div className="flex border border-gray-300 rounded-lg overflow-hidden">
                 {['table', 'grid', 'list'].map((mode) => (
                   <button
@@ -401,31 +404,28 @@ const StudentManagementDashboard = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {currentStudents.map((student) => {
-                    const cls = classes.find(c => c.class_id === student.class_id);
-                    return (
-                      <motion.tr key={student.student_id} whileHover={{ backgroundColor: '#f9fafb' }}>
-                        <td className="px-6 py-4 text-sm text-gray-900">{student.student_id}</td>
-                        <td className="px-6 py-4 font-medium text-gray-900">{student.student_name}</td>
-                        <td className="px-6 py-4">
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${getGenderColor(student.student_gender)}`}>
-                            {student.student_gender}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{cls?.class_name || '-'}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{student.student_email}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{student.student_phone || '-'}</td>
-                        <td className="px-6 py-4 text-right space-x-2">
-                          <motion.button whileHover={{ scale: 1.1 }} onClick={() => handleEdit(student)} className="text-primary-600 hover:text-primary-800">
-                            <Edit className="w-4 h-4" />
-                          </motion.button>
-                          <motion.button whileHover={{ scale: 1.1 }} onClick={() => setDeleteConfirm(student)} className="text-red-600 hover:text-red-800">
-                            <Trash2 className="w-4 h-4" />
-                          </motion.button>
-                        </td>
-                      </motion.tr>
-                    );
-                  })}
+                  {currentStudents.map((student) => (
+                    <motion.tr key={student.std_id} whileHover={{ backgroundColor: '#f9fafb' }}>
+                      <td className="px-6 py-4 text-sm text-gray-900">{student.std_id}</td>
+                      <td className="px-6 py-4 font-medium text-gray-900">{getFullName(student)}</td>
+                      <td className="px-6 py-4">
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getGenderColor(student.std_gender)}`}>
+                          {student.std_gender || '-'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">{getClassName(student.class_id)}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600">{student.std_email || '-'}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600">{student.std_phoneNumber || '-'}</td>
+                      <td className="px-6 py-4 text-right space-x-2">
+                        <motion.button whileHover={{ scale: 1.1 }} onClick={() => handleEdit(student)} className="text-primary-600 hover:text-primary-800">
+                          <Edit className="w-4 h-4" />
+                        </motion.button>
+                        <motion.button whileHover={{ scale: 1.1 }} onClick={() => setDeleteConfirm(student)} className="text-red-600 hover:text-red-800">
+                          <Trash2 className="w-4 h-4" />
+                        </motion.button>
+                      </td>
+                    </motion.tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -458,8 +458,6 @@ const StudentManagementDashboard = () => {
           </div>
         )}
 
-        {/* Grid & List views can be added similarly if needed */}
-
         {/* Toast */}
         <AnimatePresence>
           {operationStatus && (
@@ -478,79 +476,64 @@ const StudentManagementDashboard = () => {
           )}
         </AnimatePresence>
 
-        {/* Add Modal */}
+        {/* Modals */}
         <AnimatePresence>
-          {showAddModal && (
-            <Modal title="Add New Student" onClose={() => setShowAddModal(false)}>
-              <form onSubmit={handleCreate} className="space-y-4">
-                {formError && <div className="bg-red-100 text-red-700 p-3 rounded">{formError}</div>}
-                <input name="student_name" placeholder="Full Name *" value={formData.student_name} onChange={handleInputChange} className="input" required />
-                <select name="student_gender" value={formData.student_gender} onChange={handleInputChange} className="input">
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                </select>
-                <input type="email" name="student_email" placeholder="Email *" value={formData.student_email} onChange={handleInputChange} className="input" required />
-                <input type="tel" name="student_phone" placeholder="Phone" value={formData.student_phone} onChange={handleInputChange} className="input" />
-                <input type="date" name="student_dob" placeholder="Date of Birth" value={formData.student_dob} onChange={handleInputChange} className="input" />
-                <ClassSelect value={selectedClass} onChange={setSelectedClass} />
-                <div className="flex justify-end gap-3 pt-4">
-                  <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 border rounded hover:bg-gray-100">Cancel</button>
-                  <button type="submit" disabled={operationLoading} className="px-6 py-2 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50">
-                    {operationLoading ? 'Creating...' : 'Create Student'}
-                  </button>
-                </div>
-              </form>
+          {(showAddModal || showUpdateModal || deleteConfirm) && (
+            <Modal
+              title={
+                deleteConfirm ? "Delete Student" :
+                showAddModal ? "Add New Student" : "Update Student"
+              }
+              onClose={() => {
+                setShowAddModal(false);
+                setShowUpdateModal(false);
+                setDeleteConfirm(null);
+              }}
+            >
+              {deleteConfirm ? (
+                <>
+                  <p>Are you sure you want to delete <strong>{getFullName(deleteConfirm)}</strong>? This cannot be undone.</p>
+                  <div className="flex justify-end gap-3 mt-6">
+                    <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2 border rounded hover:bg-gray-100">Cancel</button>
+                    <button onClick={() => handleDelete(deleteConfirm)} className="px-6 py-2 bg-red-600 text-white rounded">Delete</button>
+                  </div>
+                </>
+              ) : (
+                <form onSubmit={showAddModal ? handleCreate : handleUpdate} className="space-y-4">
+                  {formError && <div className="bg-red-100 text-red-700 p-3 rounded">{formError}</div>}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <input name="std_fname" placeholder="First Name *" value={formData.std_fname} onChange={handleInputChange} className="w-full px-3 py-2 border rounded-lg" required />
+                    </div>
+                    <div>
+                      <input name="std_lname" placeholder="Last Name *" value={formData.std_lname} onChange={handleInputChange} className="w-full px-3 py-2 border rounded-lg" required />
+                    </div>
+                  </div>
+                  <select name="std_gender" value={formData.std_gender} onChange={handleInputChange} className="w-full px-3 py-2 border rounded-lg">
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                  <input type="email" name="std_email" placeholder="Email" value={formData.std_email} onChange={handleInputChange} className="w-full px-3 py-2 border rounded-lg" />
+                  <input type="tel" name="std_phoneNumber" placeholder="Phone" value={formData.std_phoneNumber} onChange={handleInputChange} className="w-full px-3 py-2 border rounded-lg" />
+                  <input type="date" name="std_dob" value={formData.std_dob} onChange={handleInputChange} className="w-full px-3 py-2 border rounded-lg" />
+                  <ClassSelect value={selectedClass} onChange={setSelectedClass} />
+                  <div className="flex justify-end gap-3 pt-4">
+                    <button type="button" onClick={() => showAddModal ? setShowAddModal(false) : setShowUpdateModal(false)} className="px-4 py-2 border rounded hover:bg-gray-100">Cancel</button>
+                    <button type="submit" disabled={operationLoading} className="px-6 py-2 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50">
+                      {operationLoading ? 'Saving...' : (showAddModal ? 'Create Student' : 'Update Student')}
+                    </button>
+                  </div>
+                </form>
+              )}
             </Modal>
           )}
         </AnimatePresence>
-
-        {/* Update Modal */}
-        <AnimatePresence>
-          {showUpdateModal && (
-            <Modal title="Update Student" onClose={() => setShowUpdateModal(false)}>
-              <form onSubmit={handleUpdate} className="space-y-4">
-                {formError && <div className="bg-red-100 text-red-700 p-3 rounded">{formError}</div>}
-                <input name="student_name" value={formData.student_name} onChange={handleInputChange} className="input" required />
-                <select name="student_gender" value={formData.student_gender} onChange={handleInputChange} className="input">
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                </select>
-                <input type="email" name="student_email" value={formData.student_email} onChange={handleInputChange} className="input" required />
-                <input type="tel" name="student_phone" value={formData.student_phone} onChange={handleInputChange} className="input" />
-                <input type="date" name="student_dob" value={formData.student_dob} onChange={handleInputChange} className="input" />
-                <ClassSelect value={selectedClass} onChange={setSelectedClass} />
-                <div className="flex justify-end gap-3 pt-4">
-                  <button type="button" onClick={() => setShowUpdateModal(false)} className="px-4 py-2 border rounded hover:bg-gray-100">Cancel</button>
-                  <button type="submit" disabled={operationLoading} className="px-6 py-2 bg-primary-600 text-white rounded hover:bg-primary-700">
-                    Update Student
-                  </button>
-                </div>
-              </form>
-            </Modal>
-          )}
-        </AnimatePresence>
-
-        {/* Delete Confirm */}
-        <AnimatePresence>
-          {deleteConfirm && (
-            <Modal title="Delete Student" onClose={() => setDeleteConfirm(null)}>
-              <p>Are you sure you want to delete <strong>{deleteConfirm.student_name}</strong>? This cannot be undone.</p>
-              <div className="flex justify-end gap-3 mt-6">
-                <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2 border rounded hover:bg-gray-100">Cancel</button>
-                <button onClick={() => handleDelete(deleteConfirm)} className="px-6 py-2 bg-red-600 text-white rounded">Delete</button>
-              </div>
-            </Modal>
-          )}
-        </AnimatePresence>
-
       </div>
     </div>
   );
 };
 
-// Simple reusable modal component
 const Modal = ({ title, children, onClose }) => (
   <motion.div
     initial={{ opacity: 0 }}

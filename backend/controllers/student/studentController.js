@@ -14,6 +14,9 @@ const studentController = {
     try {
       const studentData = req.body;
 
+      console.log(studentData);
+      
+
       // Validate required fields
       if (!studentData.std_fname || !studentData.std_lname) {
         return res.status(400).json({
@@ -56,7 +59,10 @@ const studentController = {
       }
 
       // Generate password
-      const generatedPassword = generateSecurePassword(12);
+      const generatedPassword =  generateSecurePassword(12);
+      console.log(generatedPassword);
+      console.log( studentData.std_email);
+      
 
       // Send welcome email before creating student
       try {
