@@ -24,10 +24,6 @@ const routeRoleMapping = {
   "/employee/dashboard/students": ["teacher", "admin"],
   "/employee/dashboard/classes": ["teacher", "admin"],
   "/employee/dashboard/grades": ["teacher", "admin"],
-
-  "/employee/dashboard/students": ["teacher", "admin"],
-  "/employee/dashboard/classes": ["teacher", "admin"],
-  "/employee/dashboard/grades": ["teacher", "admin"],
   "/employee/dashboard/trades": ["teacher", "admin"],
   "/employee/dashboard/subjects": ["teacher", "admin"],
 
@@ -93,9 +89,9 @@ const PrivateEmployeeRoute = ({ children }) => {
   }
 
   // Check role permissions
-  //   if (!checkRolePermission()) {
-  //     return <Navigate to="/employee/dashboard" replace />;
-  //   }
+  if (!checkRolePermission()) {
+    return <Navigate to="/employee/dashboard" replace />;
+  }
 
   // All checks passed, render children
   return children;

@@ -1,7 +1,7 @@
 // controllers/stockIn/stockInController.js
-const { StockIn, Stock, Employee } = require('../../model');
-const { Op } = require('sequelize');
-const stockInValidator = require('../../validators/stockinValidator');
+const { StockIn, Stock, Employee } = require("../../model");
+const { Op } = require("sequelize");
+const stockInValidator = require("../../validators/stockinValidator");
 const stockInController = {
   // CREATE - Add new stock in entry
   async createStockIn(req, res) {
@@ -13,7 +13,7 @@ const stockInController = {
       if (!validation.isValid) {
         return res.status(400).json({
           success: false,
-          message: 'Validation failed',
+          message: "Validation failed",
           errors: validation.errors,
         });
       }
@@ -24,7 +24,7 @@ const stockInController = {
         if (!employee) {
           return res.status(404).json({
             success: false,
-            message: 'Employee not found',
+            message: "Employee not found",
           });
         }
       }
@@ -37,7 +37,7 @@ const stockInController = {
         if (existingStockIn) {
           return res.status(409).json({
             success: false,
-            message: 'Reference number already exists',
+            message: "Reference number already exists",
           });
         }
       }
@@ -50,22 +50,22 @@ const stockInController = {
         include: [
           {
             model: Employee,
-            as: 'receiver',
-            attributes: ['emp_id', 'emp_name', 'emp_email', 'emp_role'],
+            as: "receiver",
+            attributes: ["emp_id", "emp_name", "emp_email", "emp_role"],
           },
         ],
       });
 
       return res.status(201).json({
         success: true,
-        message: 'Stock In record created successfully',
+        message: "Stock In record created successfully",
         data: stockInWithRelations,
       });
     } catch (error) {
-      console.error('Error creating stock in:', error);
+      console.error("Error creating stock in:", error);
       return res.status(500).json({
         success: false,
-        message: 'Internal server error',
+        message: "Internal server error",
         error: error.message,
       });
     }
@@ -74,12 +74,12 @@ const stockInController = {
   // READ - Get all stock in records
   async getAllStockIn(req, res) {
     try {
-      const { 
-        page = 1, 
-        limit = 10, 
-        search = '', 
+      const {
+        page = 1,
+        limit = 10,
+        search = "",
         status,
-        received_by 
+        received_by,
       } = req.query;
 
       // Build where clause
@@ -111,15 +111,15 @@ const stockInController = {
         include: [
           {
             model: Employee,
-            as: 'receiver',
-            attributes: ['emp_id', 'emp_name', 'emp_email', 'emp_role'],
+            as: "receiver",
+            attributes: ["emp_id", "emp_name", "emp_email", "emp_role"],
           },
           {
             model: Stock,
-            as: 'stockItems',
+            as: "stockItems",
           },
         ],
-        order: [['createdAt', 'DESC']],
+        order: [["createdAt", "DESC"]],
       });
 
       return res.status(200).json({
@@ -133,10 +133,10 @@ const stockInController = {
         },
       });
     } catch (error) {
-      console.error('Error fetching stock in records:', error);
+      console.error("Error fetching stock in records:", error);
       return res.status(500).json({
         success: false,
-        message: 'Internal server error',
+        message: "Internal server error",
         error: error.message,
       });
     }
@@ -151,7 +151,7 @@ const stockInController = {
       if (!id || isNaN(id)) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid stock in ID',
+          message: "Invalid stock in ID",
         });
       }
 
@@ -159,12 +159,12 @@ const stockInController = {
         include: [
           {
             model: Employee,
-            as: 'receiver',
-            attributes: ['emp_id', 'emp_name', 'emp_email', 'emp_role'],
+            as: "receiver",
+            attributes: ["emp_id", "emp_name", "emp_email", "emp_role"],
           },
           {
             model: Stock,
-            as: 'stockItems',
+            as: "stockItems",
           },
         ],
       });
@@ -172,7 +172,7 @@ const stockInController = {
       if (!stockIn) {
         return res.status(404).json({
           success: false,
-          message: 'Stock In record not found',
+          message: "Stock In record not found",
         });
       }
 
@@ -181,10 +181,10 @@ const stockInController = {
         data: stockIn,
       });
     } catch (error) {
-      console.error('Error fetching stock in:', error);
+      console.error("Error fetching stock in:", error);
       return res.status(500).json({
         success: false,
-        message: 'Internal server error',
+        message: "Internal server error",
         error: error.message,
       });
     }
@@ -200,7 +200,7 @@ const stockInController = {
       if (!id || isNaN(id)) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid stock in ID',
+          message: "Invalid stock in ID",
         });
       }
 
@@ -209,7 +209,7 @@ const stockInController = {
       if (!stockIn) {
         return res.status(404).json({
           success: false,
-          message: 'Stock In record not found',
+          message: "Stock In record not found",
         });
       }
 
@@ -218,7 +218,7 @@ const stockInController = {
       if (!validation.isValid) {
         return res.status(400).json({
           success: false,
-          message: 'Validation failed',
+          message: "Validation failed",
           errors: validation.errors,
         });
       }
@@ -229,21 +229,23 @@ const stockInController = {
         if (!employee) {
           return res.status(404).json({
             success: false,
-            message: 'Employee not found',
+            message: "Employee not found",
           });
         }
       }
 
       // Check if reference number is being updated and already exists
-      if (updateData.reference_number && 
-          updateData.reference_number !== stockIn.reference_number) {
+      if (
+        updateData.reference_number &&
+        updateData.reference_number !== stockIn.reference_number
+      ) {
         const existingStockIn = await StockIn.findOne({
           where: { reference_number: updateData.reference_number },
         });
         if (existingStockIn) {
           return res.status(409).json({
             success: false,
-            message: 'Reference number already exists',
+            message: "Reference number already exists",
           });
         }
       }
@@ -256,26 +258,26 @@ const stockInController = {
         include: [
           {
             model: Employee,
-            as: 'receiver',
-            attributes: ['emp_id', 'emp_name', 'emp_email', 'emp_role'],
+            as: "receiver",
+            attributes: ["emp_id", "emp_name", "emp_email", "emp_role"],
           },
           {
             model: Stock,
-            as: 'stockItems',
+            as: "stockItems",
           },
         ],
       });
 
       return res.status(200).json({
         success: true,
-        message: 'Stock In record updated successfully',
+        message: "Stock In record updated successfully",
         data: updatedStockIn,
       });
     } catch (error) {
-      console.error('Error updating stock in:', error);
+      console.error("Error updating stock in:", error);
       return res.status(500).json({
         success: false,
-        message: 'Internal server error',
+        message: "Internal server error",
         error: error.message,
       });
     }
@@ -290,7 +292,7 @@ const stockInController = {
       if (!id || isNaN(id)) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid stock in ID',
+          message: "Invalid stock in ID",
         });
       }
 
@@ -299,13 +301,13 @@ const stockInController = {
       if (!stockIn) {
         return res.status(404).json({
           success: false,
-          message: 'Stock In record not found',
+          message: "Stock In record not found",
         });
       }
 
       // Check if there are related stock items
-      const relatedStocks = await Stock.count({ 
-        where: { stock_inId: id } 
+      const relatedStocks = await Stock.count({
+        where: { stock_inId: id },
       });
 
       if (relatedStocks > 0) {
@@ -320,13 +322,13 @@ const stockInController = {
 
       return res.status(200).json({
         success: true,
-        message: 'Stock In record deleted successfully',
+        message: "Stock In record deleted successfully",
       });
     } catch (error) {
-      console.error('Error deleting stock in:', error);
+      console.error("Error deleting stock in:", error);
       return res.status(500).json({
         success: false,
-        message: 'Internal server error',
+        message: "Internal server error",
         error: error.message,
       });
     }
@@ -342,7 +344,7 @@ const stockInController = {
       if (!id || isNaN(id)) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid stock in ID',
+          message: "Invalid stock in ID",
         });
       }
 
@@ -351,7 +353,7 @@ const stockInController = {
       if (!validation.isValid) {
         return res.status(400).json({
           success: false,
-          message: 'Validation failed',
+          message: "Validation failed",
           errors: validation.errors,
         });
       }
@@ -361,7 +363,7 @@ const stockInController = {
       if (!stockIn) {
         return res.status(404).json({
           success: false,
-          message: 'Stock In record not found',
+          message: "Stock In record not found",
         });
       }
 
@@ -372,22 +374,22 @@ const stockInController = {
         include: [
           {
             model: Employee,
-            as: 'receiver',
-            attributes: ['emp_id', 'emp_name', 'emp_email'],
+            as: "receiver",
+            attributes: ["emp_id", "emp_name", "emp_email"],
           },
         ],
       });
 
       return res.status(200).json({
         success: true,
-        message: 'Stock In status updated successfully',
+        message: "Stock In status updated successfully",
         data: updatedStockIn,
       });
     } catch (error) {
-      console.error('Error updating stock in status:', error);
+      console.error("Error updating stock in status:", error);
       return res.status(500).json({
         success: false,
-        message: 'Internal server error',
+        message: "Internal server error",
         error: error.message,
       });
     }
@@ -401,7 +403,7 @@ const stockInController = {
       if (!query || query.trim().length === 0) {
         return res.status(400).json({
           success: false,
-          message: 'Search query is required',
+          message: "Search query is required",
         });
       }
 
@@ -416,12 +418,12 @@ const stockInController = {
         include: [
           {
             model: Employee,
-            as: 'receiver',
-            attributes: ['emp_id', 'emp_name', 'emp_email'],
+            as: "receiver",
+            attributes: ["emp_id", "emp_name", "emp_email"],
           },
           {
             model: Stock,
-            as: 'stockItems',
+            as: "stockItems",
           },
         ],
         limit: 20,
@@ -433,10 +435,10 @@ const stockInController = {
         count: stockInRecords.length,
       });
     } catch (error) {
-      console.error('Error searching stock in records:', error);
+      console.error("Error searching stock in records:", error);
       return res.status(500).json({
         success: false,
-        message: 'Internal server error',
+        message: "Internal server error",
         error: error.message,
       });
     }
@@ -446,14 +448,14 @@ const stockInController = {
   async getStockInSummary(req, res) {
     try {
       const totalStockIn = await StockIn.count();
-      const pendingStockIn = await StockIn.count({ 
-        where: { status: 'pending' } 
+      const pendingStockIn = await StockIn.count({
+        where: { status: "pending" },
       });
-      const receivedStockIn = await StockIn.count({ 
-        where: { status: 'received' } 
+      const receivedStockIn = await StockIn.count({
+        where: { status: "received" },
       });
-      const cancelledStockIn = await StockIn.count({ 
-        where: { status: 'cancelled' } 
+      const cancelledStockIn = await StockIn.count({
+        where: { status: "cancelled" },
       });
 
       return res.status(200).json({
@@ -466,10 +468,10 @@ const stockInController = {
         },
       });
     } catch (error) {
-      console.error('Error fetching stock in summary:', error);
+      console.error("Error fetching stock in summary:", error);
       return res.status(500).json({
         success: false,
-        message: 'Internal server error',
+        message: "Internal server error",
         error: error.message,
       });
     }

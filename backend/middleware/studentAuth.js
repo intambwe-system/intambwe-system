@@ -1,5 +1,6 @@
 // middleware/studentAuth.js
 const jwt = require('jsonwebtoken');
+const crypto =  require('crypto')
 const { Student } = require('../model');
 
 // Verify JWT token and attach student to request
@@ -198,6 +199,11 @@ const authorizeClass = (req, res, next) => {
 };
 
 
+// Function to generate secure random password
+ function generateSecurePassword(length = 12) {
+  return  crypto.randomBytes(length).toString('base64').slice(0, length);
+}
+
 // Check if student belongs to specific grade
 const authorizeGrade = (req, res, next) => {
   if (!req.student) {
@@ -223,6 +229,7 @@ const authorizeGrade = (req, res, next) => {
 module.exports = {
   authenticateStudent,
   authorizeOwner,
+  generateSecurePassword,
   authorizeClass,
   authorizeGrade
 };

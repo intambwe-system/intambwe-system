@@ -8,6 +8,10 @@ const Student = sequelize.define('Student', {
     primaryKey: true,
     autoIncrement: true
   },
+  std_image:{
+ type: DataTypes.STRING(200),
+    allowNull: false
+  },
   std_fname: {
     type: DataTypes.STRING(50),
     allowNull: false
@@ -32,7 +36,10 @@ const Student = sequelize.define('Student', {
     type: DataTypes.ENUM('Male', 'Female', 'Other'),
     allowNull: true
   },
- 
+   std_password: {
+    type: DataTypes.STRING(255),
+    allowNull: false
+  },
   class_id: {
     type: DataTypes.INTEGER,
     allowNull: true,

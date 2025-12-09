@@ -127,7 +127,7 @@ const syncDatabase = async () => {
 
     // Use { force: true } to drop and recreate tables (use with caution!)
     // Use { alter: true } to modify tables to match models
-    await sequelize.sync({ alter: true });
+    await sequelize.sync({ alter: false });
     console.log("All models synchronized successfully.");
   } catch (error) {
     console.error("Unable to connect to the database:", error);

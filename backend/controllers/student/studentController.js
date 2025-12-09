@@ -1,14 +1,21 @@
 // controllers/studentController.js
 
-
 const {  Student,Class } = require('../../model');
 const { Op } = require('sequelize');
+const emailService = require('../../services/emailService');
+const bcrypt = require('bcryptjs');
+const { generateSecurePassword } = require('../../middleware/studentAuth');
+
+
 
 const studentController = {
   // CREATE - Add new student
-  async createStudent(req, res) {
+    async createStudent(req, res) {
     try {
       const studentData = req.body;
+
+      console.log(studentData);
+      
 
       // Validate required fields
       if (!studentData.std_fname || !studentData.std_lname) {
@@ -18,7 +25,7 @@ const studentController = {
         });
       }
 
-      // Validate email format if provided
+      // Validate email format
       if (studentData.std_email) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(studentData.std_email)) {
@@ -28,39 +35,72 @@ const studentController = {
           });
         }
 
-        // Check if email already exists
-        const existingStudent = await Student.findOne({
-          where: { std_email: studentData.std_email }
+        const existing = await Student.findOne({
+          where: { std_email: studentData.std_email },
         });
 
-        if (existingStudent) {
+        if (existing) {
           return res.status(409).json({
             success: false,
-            message: 'Email already exists'
+            message: 'Email already exists',
           });
         }
       }
 
-      // Check if class exists (if provided)
+      // Validate class
       if (studentData.class_id) {
         const classExists = await Class.findByPk(studentData.class_id);
         if (!classExists) {
           return res.status(404).json({
             success: false,
-            message: 'Class not found'
+            message: 'Class not found',
           });
         }
       }
 
-   
+      // Generate password
+      const generatedPassword =  generateSecurePassword(12);
+      console.log(generatedPassword);
+      console.log( studentData.std_email);
+      
+
+      // Send welcome email before creating student
+      try {
+        await emailService.sendEmail({
+          to: studentData.std_email,
+          subject: 'Welcome to Our School - Your Student Account',
+          template: 'student-welcome',
+          company: process.env.EMAIL_FROM_NAME || 'School Admin',
+          data: {
+            name: `${studentData.std_fname} ${studentData.std_lname}`,
+            email: studentData.std_email,
+            password: generatedPassword,
+            loginUrl: process.env.FRONTEND_URL || 'https://yourapp.com/login',
+            year: new Date().getFullYear(),
+          },
+        });
+      } catch (emailError) {
+        console.error('Error sending student welcome email:', emailError);
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to send welcome email. Student not created.',
+          error: emailError.message,
+        });
+      }
+
+      // Hash password before saving
+      const hashedPassword = await bcrypt.hash(generatedPassword, 10);
 
       // Create student
-      const newStudent = await Student.create(studentData);
+      const newStudent = await Student.create({
+        ...studentData,
+        std_password: hashedPassword,
+      });
 
       return res.status(201).json({
         success: true,
         message: 'Student created successfully',
-        data: newStudent
+        data: newStudent,
       });
 
     } catch (error) {
@@ -68,7 +108,7 @@ const studentController = {
       return res.status(500).json({
         success: false,
         message: 'Internal server error',
-        error: error.message
+        error: error.message,
       });
     }
   },
@@ -77,7 +117,6 @@ const studentController = {
   async getAllStudents(req, res) {
     try {
       const { 
-        grade, 
         class_id, 
         dpt_id, 
         gender, 
@@ -87,7 +126,6 @@ const studentController = {
 
       // Build where clause
       const whereClause = {};
-      if (grade) whereClause.std_grade = grade;
       if (class_id) whereClause.class_id = class_id;
       if (dpt_id) whereClause.dpt_id = dpt_id;
       if (gender) whereClause.std_gender = gender;
@@ -363,8 +401,7 @@ const studentController = {
           [Op.or]: [
             { std_fname: { [Op.like]: `%${query}%` } },
             { std_lname: { [Op.like]: `%${query}%` } },
-            { std_email: { [Op.like]: `%${query}%` } },
-            { std_grade: { [Op.like]: `%${query}%` } }
+            { std_email: { [Op.like]: `%${query}%` } }
           ]
         },
         include: [
@@ -398,15 +435,6 @@ const studentController = {
   async getStudentStats(req, res) {
     try {
       const totalStudents = await Student.count();
-      
-      const studentsByGrade = await Student.findAll({
-        attributes: [
-          'std_grade',
-          [sequelize.fn('COUNT', sequelize.col('std_id')), 'count']
-        ],
-        group: ['std_grade'],
-        raw: true
-      });
 
       const studentsByGender = await Student.findAll({
         attributes: [
@@ -434,7 +462,6 @@ const studentController = {
         success: true,
         data: {
           total: totalStudents,
-          byGrade: studentsByGrade,
           byGender: studentsByGender,
           byClass: studentsByClass
         }

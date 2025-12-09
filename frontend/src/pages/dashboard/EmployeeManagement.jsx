@@ -62,7 +62,9 @@ const EmployeeManagementDashboard = () => {
     try {
       setLoading(true);
       const data = await employeeService.getAllEmployees();
-      setAllEmployees(data.data || data); // adjust based on API response structure
+      const result = data.data || data;
+      const filteredData = result?.filter(r=> r?.emp_role !== 'admin')
+      setAllEmployees(filteredData); // adjust based on API response structure
       setError(null);
     } catch (err) {
       setError(err.message || 'Failed to load employees');
@@ -111,7 +113,7 @@ const EmployeeManagementDashboard = () => {
 
   const totalEmployees = allEmployees.length;
   const teachers = allEmployees.filter(e => e.emp_role === 'teacher').length;
-  const admins = allEmployees.filter(e => e.emp_role === 'admin').length;
+
   const stockManagers = allEmployees.filter(e => e.emp_role === 'stock_manager').length;
 
   const filteredDepartments = useMemo(() => {
@@ -225,7 +227,7 @@ const EmployeeManagementDashboard = () => {
   const getRoleBadgeColor = (role) => {
     const colors = {
       teacher: 'bg-blue-100 text-blue-800',
-      admin: 'bg-purple-100 text-purple-800',
+
       stock_manager: 'bg-green-100 text-green-800'
     };
     return colors[role] || 'bg-gray-100 text-gray-800';
@@ -591,7 +593,7 @@ const EmployeeManagementDashboard = () => {
           {[
             { title: 'Total Employees', count: totalEmployees, color: 'primary-600', icon: Users },
             { title: 'Teachers', count: teachers, color: 'blue-600', icon: Briefcase },
-            { title: 'Admins', count: admins, color: 'purple-600', icon: User },
+            
             { title: 'Stock Managers', count: stockManagers, color: 'green-600', icon: Briefcase },
           ].map((stat, index) => (
             <motion.div

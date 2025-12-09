@@ -10,8 +10,11 @@ import EmployeeProfilePage from "../pages/dashboard/employee/EmployeeProfilePage
 import DepartmentDashboard from "../pages/dashboard/DepartmentPage";
 import EmployeeManagementDashboard from "../pages/dashboard/EmployeeManagement";
 import TradeManagementSystem from "../pages/dashboard/employee/trade/TradeManagementSystem";
-import StudentDashboard from "../pages/dashboard/StudentPage";
+
+import StudentManagementDashboard from "../pages/dashboard/StudentManagementDashboard";
 import ClassManagementDashboard from "../pages/dashboard/class/ClassManagement";
+import StudentDashboard from "../pages/dashboard/StudentPage";
+import SubjectPage from "../pages/dashboard/SubjectPage";
 
 const LoadingSpinner = () => (
   <div className="loading-spinner">
@@ -55,7 +58,7 @@ const router = createBrowserRouter([
           { path: "department", element: <DepartmentDashboard /> },
           { path: "employees", element: <EmployeeManagementDashboard /> },
           { path: "trades", element: <TradeManagementSystem /> },
-          { path: "students", element: <StudentDashboard /> },
+          { path: "students", element: <StudentManagementDashboard /> },
           {
             path: "classes",
             element: <ClassManagementDashboard />,
