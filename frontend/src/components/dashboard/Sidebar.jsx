@@ -39,7 +39,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       color: 'from-blue-500 to-cyan-500'
     },
     {
-      title: 'Admin',
+      title: 'Staff',
       icon: Settings,
       roles: ['admin'],
       color: 'from-purple-500 to-pink-500',
