@@ -38,7 +38,6 @@ app.use(morgan("dev"));
 /* ✅ Routes */
 app.use("/api/employee", employeeRoute);
 app.use("/api/student", studentRoutes);
-
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/class", classRoutes);
 app.use("/api/marks", marksRoutes);
