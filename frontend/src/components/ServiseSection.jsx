@@ -104,7 +104,7 @@ export default function ServiceSection() {
         </div>
 
         {/* Service Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-0">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 S">
           {services.map((service) => {
             const Icon = service.icon;
             return (
@@ -137,7 +137,7 @@ export default function ServiceSection() {
       </div>
 
       {/* Why Choose Us Section */}
-      <div className="bg-white text-black mb-32" >
+      <div className="bg-white text-black mb-0" >
         <div className="max-w-7xl mx-auto px-4 py-16">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4 text-gray-900">Why Choose INTAMBWE?</h2>
