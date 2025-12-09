@@ -64,7 +64,7 @@ Class.belongsTo(Trade, {
 
 // Student Associations
 Student.belongsTo(Class, { foreignKey: "class_id" });
-Student.belongsTo(Department, { foreignKey: "dpt_id" });
+
 Student.hasMany(Marks, { foreignKey: "std_id", onDelete: "CASCADE" });
 Student.hasMany(Attendance, { foreignKey: "student_id", onDelete: "CASCADE" });
 
@@ -111,7 +111,7 @@ const syncDatabase = async () => {
 
     // Use { force: true } to drop and recreate tables (use with caution!)
     // Use { alter: true } to modify tables to match models
-    await sequelize.sync({ alter: false });
+    await sequelize.sync({ alter: true });
     console.log("All models synchronized successfully.");
   } catch (error) {
     console.error("Unable to connect to the database:", error);
