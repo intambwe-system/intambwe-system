@@ -197,27 +197,6 @@ const authorizeClass = (req, res, next) => {
   next();
 };
 
-// Check if student belongs to specific department
-const authorizeDepartment = (req, res, next) => {
-  if (!req.student) {
-    return res.status(401).json({ 
-      success: false, 
-      message: 'Authentication required' 
-    });
-  }
-
-  const deptId = parseInt(req.params.dpt_id || req.body.dpt_id);
-  const sameDepartment = req.student.dpt_id === deptId;
-
-  if (!sameDepartment) {
-    return res.status(403).json({ 
-      success: false, 
-      message: 'Access denied. You can only access resources in your department.' 
-    });
-  }
-
-  next();
-};
 
 // Check if student belongs to specific grade
 const authorizeGrade = (req, res, next) => {
@@ -245,6 +224,5 @@ module.exports = {
   authenticateStudent,
   authorizeOwner,
   authorizeClass,
-  authorizeDepartment,
   authorizeGrade
 };

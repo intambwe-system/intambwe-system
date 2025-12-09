@@ -5,4 +5,4 @@ const studentAuthRoutes = require('../student/studentAuthRoute')
 router.use('/auth',studentAuthRoutes)
 router.use(studentRoutes)
 
-module.exports = studentRoutes
+module.exports = router

@@ -32,10 +32,7 @@ const Student = sequelize.define('Student', {
     type: DataTypes.ENUM('Male', 'Female', 'Other'),
     allowNull: true
   },
-  std_grade: {
-    type: DataTypes.STRING(10),
-    allowNull: true
-  },
+ 
   class_id: {
     type: DataTypes.INTEGER,
     allowNull: true,
@@ -44,18 +41,8 @@ const Student = sequelize.define('Student', {
       key: 'class_id'
     }
   },
-  parent_id: {
-    type: DataTypes.INTEGER,
-    allowNull: true
-  },
-  dpt_id: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-    references: {
-      model: 'Department',
-      key: 'dpt_id'
-    }
-  }
+  
+  
 }, {
   tableName: 'Student',
   timestamps: false,

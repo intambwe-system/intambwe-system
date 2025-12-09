@@ -1,8 +1,8 @@
 // routes/employeeRoutes.js
 const express = require('express');
 const router = express.Router();
-const employeeController = require('../../controllers/employee/employeeController');
-const { authenticateToken, authorizeOwnerOrAdmin, authorizeRoles } = require('../../middleware/employeeAuth');
+const employeeController = require('../../../controllers/employee/employeeController');
+const { authenticateToken, authorizeOwnerOrAdmin, authorizeRoles } = require('../../../middleware/employeeAuth');
 
 // CREATE
 router.post('/admin', employeeController.createAdminEmployee);
