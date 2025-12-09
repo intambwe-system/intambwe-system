@@ -80,7 +80,8 @@ const Sidebar = ({ isOpen, onClose }) => {
       children: [
         { title: 'Students', icon: Users, path: '/employee/dashboard/students' },
         { title: 'Classes', icon: GraduationCap, path: '/employee/dashboard/classes' },
-        { title: 'Grades', icon: Award, path: '/employee/dashboard/grades' }
+        { title: 'Grades', icon: Award, path: '/employee/dashboard/grades' },
+        { title: 'Subjects', icon: BookOpen, path: '/employee/dashboard/subjects' }
       ]
     }
   ];
