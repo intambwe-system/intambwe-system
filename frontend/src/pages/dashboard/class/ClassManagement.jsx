@@ -418,7 +418,7 @@ const ClassManagementDashboard = () => {
                   </span>
                 </td>
                 <td className="py-3 px-4 text-gray-600 hidden lg:table-cell">
-                  {cls.Employee?.emp_name || "Not assigned"}
+                  {cls.classTeacher?.emp_name || "Not assigned"}
                 </td>
                 <td className="py-3 px-4 text-right space-x-2">
                   <motion.button

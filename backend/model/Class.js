@@ -9,6 +9,7 @@ const Class = sequelize.define(
       type: DataTypes.INTEGER,
       primaryKey: true,
       autoIncrement: true,
+      unique: true,
     },
     class_name: {
       type: DataTypes.STRING(50),
@@ -25,6 +26,7 @@ const Class = sequelize.define(
     emp_id: {
       type: DataTypes.INTEGER,
       allowNull: true,
+      unique: true,
       references: {
         model: "Employee",
         key: "emp_id",

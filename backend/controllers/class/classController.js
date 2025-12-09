@@ -1,3 +1,4 @@
+const { Op } = require("sequelize");
 const {
   Class,
   Department,
@@ -51,6 +52,36 @@ const classController = {
           return res
             .status(404)
             .json({ success: false, message: "Trade not found" });
+      }
+
+      if (data.emp_id) {
+        const teacherExists = await Class.findOne({
+          where: { emp_id: data.emp_id },
+        });
+
+        if (teacherExists) {
+          const classTeacher = await Employee.findOne({
+            where: { emp_id: teacherExists.emp_id },
+          });
+
+          return res.status(400).json({
+            success: true,
+            message: `There is already a class teacher named ${classTeacher.emp_name}`,
+          });
+        }
+      }
+
+      if (data.class_name) {
+        const classExists = await Class.findOne({
+          where: { class_name: data.class_name },
+        });
+
+        if (classExists) {
+          return res.status(400).json({
+            success: true,
+            message: `You already have a class named ${data.class_name}`,
+          });
+        }
       }
 
       const newClass = await Class.create(data);
@@ -197,6 +228,49 @@ const classController = {
           return res
             .status(404)
             .json({ success: false, message: "Trade not found" });
+      }
+
+      if (updateData.emp_id) {
+        const teacherExists = await Class.findOne({
+          where: {
+            [Op.and]: [
+              { emp_id: updateData.emp_id },
+              { class_id: { [Op.ne]: classObj.class_id } },
+            ],
+          },
+        });
+
+        if (teacherExists) {
+          const classTeacher = await Employee.findOne({
+            where: { emp_id: teacherExists.emp_id },
+          });
+
+          return res.status(400).json({
+            success: true,
+            message: `There is already a class teacher named ${classTeacher.emp_name}`,
+          });
+        }
+      }
+
+      if (updateData.class_name) {
+        const classExists = await Class.findOne({
+          where: {
+            [Op.and]: [
+              { class_name: updateData.class_name },
+              { class_id: { [Op.ne]: classObj.class_id } },
+            ],
+          },
+        });
+
+        console.log("classes found 🎉🎉🎉");
+        console.log(classExists);
+
+        if (classExists) {
+          return res.status(400).json({
+            success: true,
+            message: `You already have a class named ${updateData.class_name}`,
+          });
+        }
       }
 
       await classObj.update(updateData);
