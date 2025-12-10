@@ -17,6 +17,7 @@ import StudentDashboard from "../pages/dashboard/StudentPage";
 import SubjectPage from "../pages/dashboard/SubjectPage";
 import AssignClassSubjectsPage from "../pages/dashboard/AssignClassSubjectsPage";
 import NotFound from "../pages/NotFound";
+import MySubjectsPage from "../pages/dashboard/teacher/MySubjectsPage";
 
 const LoadingSpinner = () => (
   <div className="loading-spinner">
@@ -64,6 +65,7 @@ const router = createBrowserRouter([
           { path: "classes", element: <ClassManagementDashboard /> },
           { path: "subjects", element: <SubjectPage /> },
           { path: "assign-class-subjects", element: <AssignClassSubjectsPage /> },
+          { path: "my-subjects", element: <MySubjectsPage /> },
         ],
       },
       // Any unknown /employee/... path (including unknown dashboard URLs) should render
