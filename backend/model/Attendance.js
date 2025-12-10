@@ -79,6 +79,10 @@ const Attendance = sequelize.define('Attendance', {
       fields: ['class_id']
     },
     {
+      name: 'idx_attendance_emp',
+      fields: ['emp_id']
+    },
+    {
       name: 'idx_attendance_date',
       fields: ['date']
     },
@@ -87,8 +91,16 @@ const Attendance = sequelize.define('Attendance', {
       fields: ['student_id', 'date']
     },
     {
+      name: 'idx_attendance_class_date',
+      fields: ['class_id', 'date']
+    },
+    {
       name: 'idx_attendance_status',
       fields: ['status']
+    },
+    {
+      name: 'idx_attendance_method',
+      fields: ['method']
     }
   ]
 });

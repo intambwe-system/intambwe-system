@@ -1,22 +1,24 @@
-const { Attendance, Student, Class, Subject } = require('../../model');
+// controllers/attendance/attendanceController.js
+const { Attendance, Student, Class, Employee } = require('../../model');
 const { Op } = require('sequelize');
-const attendanceValidator = require('../../validators/attendanceValidator');
+const sequelize = require('../../config/database');
 
 const attendanceController = {
+  // Record new attendance
   async recordAttendance(req, res) {
     try {
-      const data = req.body;
-      
-      const validation = attendanceValidator.validateAttendanceData(data);
-      if (!validation.isValid) {
+      const { student_id, class_id, emp_id, date, time_in, time_out, status, method } = req.body;
+
+      // Validation
+      if (!student_id || !class_id || !date || !time_in || !status) {
         return res.status(400).json({
           success: false,
-          message: 'Validation failed',
-          errors: validation.errors
+          message: 'Missing required fields: student_id, class_id, date, time_in, status'
         });
       }
 
-      const student = await Student.findByPk(data.student_id);
+      // Verify student exists
+      const student = await Student.findByPk(student_id);
       if (!student) {
         return res.status(404).json({
           success: false,
@@ -24,7 +26,8 @@ const attendanceController = {
         });
       }
 
-      const classObj = await Class.findByPk(data.class_id);
+      // Verify class exists
+      const classObj = await Class.findByPk(class_id);
       if (!classObj) {
         return res.status(404).json({
           success: false,
@@ -32,27 +35,25 @@ const attendanceController = {
         });
       }
 
-      if (data.subject_id) {
-        const subject = await Subject.findByPk(data.subject_id);
-        if (!subject) {
-          return res.status(404).json({
-            success: false,
-            message: 'Subject not found'
-          });
-        }
-      }
-
+      // Check if attendance already exists for this student on this date
       const existing = await Attendance.findOne({
         where: {
-          student_id: data.student_id,
-          class_id: data.class_id,
-          subject_id: data.subject_id || null,
-          date: data.date
+          student_id,
+          class_id,
+          date
         }
       });
 
       if (existing) {
-        await existing.update(data);
+        // Update existing record
+        await existing.update({
+          emp_id,
+          time_in,
+          time_out,
+          status,
+          method
+        });
+
         return res.status(200).json({
           success: true,
           message: 'Attendance updated successfully',
@@ -60,7 +61,17 @@ const attendanceController = {
         });
       }
 
-      const attendance = await Attendance.create(data);
+      // Create new attendance record
+      const attendance = await Attendance.create({
+        student_id,
+        class_id,
+        emp_id,
+        date,
+        time_in,
+        time_out,
+        status,
+        method: method || 'manual'
+      });
 
       return res.status(201).json({
         success: true,
@@ -77,13 +88,15 @@ const attendanceController = {
     }
   },
 
+  // Get attendance with filters
   async getAttendance(req, res) {
     try {
       const {
         student_id,
         class_id,
-        subject_id,
+        emp_id,
         status,
+        method,
         start_date,
         end_date,
         page = 1,
@@ -91,10 +104,12 @@ const attendanceController = {
       } = req.query;
 
       const whereClause = {};
+      
       if (student_id) whereClause.student_id = student_id;
       if (class_id) whereClause.class_id = class_id;
-      if (subject_id) whereClause.subject_id = subject_id;
+      if (emp_id) whereClause.emp_id = emp_id;
       if (status) whereClause.status = status;
+      if (method) whereClause.method = method;
 
       if (start_date || end_date) {
         whereClause.date = {};
@@ -107,9 +122,21 @@ const attendanceController = {
       const { count, rows } = await Attendance.findAndCountAll({
         where: whereClause,
         include: [
-          { model: Student },
-          { model: Class },
-          { model: Subject }
+          {
+            model: Student,
+            as: 'student',
+            attributes: ['std_id', 'std_fname', 'std_mname', 'std_lname', 'std_email']
+          },
+          {
+            model: Class,
+            as: 'class',
+            attributes: ['class_id', 'class_name']
+          },
+          {
+            model: Employee,
+            as: 'recordedBy',
+            attributes: ['emp_id', 'emp_name', 'emp_role']
+          }
         ],
         order: [['date', 'DESC'], ['time_in', 'ASC']],
         limit: parseInt(limit),
@@ -136,22 +163,28 @@ const attendanceController = {
     }
   },
 
+  // Get single attendance by ID
   async getAttendanceById(req, res) {
     try {
       const { id } = req.params;
 
-      if (!id || isNaN(id)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid attendance ID'
-        });
-      }
-
       const attendance = await Attendance.findByPk(id, {
         include: [
-          { model: Student },
-          { model: Class },
-          { model: Subject }
+          {
+            model: Student,
+            as: 'student',
+            attributes: ['std_id', 'std_fname', 'std_mname', 'std_lname', 'std_email', 'std_phone']
+          },
+          {
+            model: Class,
+            as: 'class',
+            attributes: ['class_id', 'class_name']
+          },
+          {
+            model: Employee,
+            as: 'recordedBy',
+            attributes: ['emp_id', 'emp_name', 'emp_role', 'emp_email']
+          }
         ]
       });
 
@@ -167,7 +200,7 @@ const attendanceController = {
         data: attendance
       });
     } catch (error) {
-      console.error('Error fetching attendance record:', error);
+      console.error('Error fetching attendance:', error);
       return res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -176,17 +209,11 @@ const attendanceController = {
     }
   },
 
+  // Update attendance
   async updateAttendance(req, res) {
     try {
       const { id } = req.params;
       const updateData = req.body;
-
-      if (!id || isNaN(id)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid attendance ID'
-        });
-      }
 
       const attendance = await Attendance.findByPk(id);
       if (!attendance) {
@@ -196,22 +223,13 @@ const attendanceController = {
         });
       }
 
-      const validation = attendanceValidator.validateAttendanceData(updateData, true);
-      if (!validation.isValid) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: validation.errors
-        });
-      }
-
       await attendance.update(updateData);
 
       const updated = await Attendance.findByPk(id, {
         include: [
-          { model: Student },
-          { model: Class },
-          { model: Subject }
+          { model: Student, as: 'student' },
+          { model: Class, as: 'class' },
+          { model: Employee, as: 'recordedBy' }
         ]
       });
 
@@ -230,16 +248,10 @@ const attendanceController = {
     }
   },
 
+  // Delete attendance
   async deleteAttendance(req, res) {
     try {
       const { id } = req.params;
-
-      if (!id || isNaN(id)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid attendance ID'
-        });
-      }
 
       const attendance = await Attendance.findByPk(id);
       if (!attendance) {
@@ -265,19 +277,14 @@ const attendanceController = {
     }
   },
 
+  // Get student attendance summary
   async getStudentAttendanceSummary(req, res) {
     try {
       const { student_id } = req.params;
       const { start_date, end_date } = req.query;
 
-      if (!student_id || isNaN(student_id)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid student ID'
-        });
-      }
-
       const whereClause = { student_id };
+      
       if (start_date || end_date) {
         whereClause.date = {};
         if (start_date) whereClause.date[Op.gte] = start_date;
@@ -288,9 +295,12 @@ const attendanceController = {
 
       const summary = {
         total: records.length,
-        present: records.filter(r => r.status === 'PRESENT').length,
-        absent: records.filter(r => r.status === 'ABSENT').length,
-        late: records.filter(r => r.status === 'LATE').length
+        present: records.filter(r => r.status === 'present').length,
+        absent: records.filter(r => r.status === 'absent').length,
+        late: records.filter(r => r.status === 'late').length,
+        attendanceRate: records.length > 0 
+          ? ((records.filter(r => r.status === 'present' || r.status === 'late').length / records.length) * 100).toFixed(2)
+          : 0
       };
 
       return res.status(200).json({
@@ -298,7 +308,265 @@ const attendanceController = {
         data: summary
       });
     } catch (error) {
-      console.error('Error fetching attendance summary:', error);
+      console.error('Error fetching student summary:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: error.message
+      });
+    }
+  },
+
+  // Group by Class
+  async getAttendanceByClass(req, res) {
+    try {
+      const { start_date, end_date, status } = req.query;
+
+      const whereClause = {};
+      if (status) whereClause.status = status;
+      if (start_date || end_date) {
+        whereClause.date = {};
+        if (start_date) whereClause.date[Op.gte] = start_date;
+        if (end_date) whereClause.date[Op.lte] = end_date;
+      }
+
+      const results = await Attendance.findAll({
+        where: whereClause,
+        attributes: [
+          'class_id',
+          [sequelize.fn('COUNT', sequelize.col('id')), 'total_records'],
+          [sequelize.fn('COUNT', sequelize.literal("CASE WHEN status = 'present' THEN 1 END")), 'present_count'],
+          [sequelize.fn('COUNT', sequelize.literal("CASE WHEN status = 'absent' THEN 1 END")), 'absent_count'],
+          [sequelize.fn('COUNT', sequelize.literal("CASE WHEN status = 'late' THEN 1 END")), 'late_count']
+        ],
+        include: [
+          {
+            model: Class,
+            as: 'class',
+            attributes: ['class_id', 'class_name']
+          }
+        ],
+        group: ['class_id', 'class.class_id'],
+        raw: false
+      });
+
+      return res.status(200).json({
+        success: true,
+        data: results
+      });
+    } catch (error) {
+      console.error('Error fetching attendance by class:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: error.message
+      });
+    }
+  },
+
+  // Group by Date
+  async getAttendanceByDate(req, res) {
+    try {
+      const { start_date, end_date, class_id, status } = req.query;
+
+      const whereClause = {};
+      if (class_id) whereClause.class_id = class_id;
+      if (status) whereClause.status = status;
+      if (start_date || end_date) {
+        whereClause.date = {};
+        if (start_date) whereClause.date[Op.gte] = start_date;
+        if (end_date) whereClause.date[Op.lte] = end_date;
+      }
+
+      const results = await Attendance.findAll({
+        where: whereClause,
+        attributes: [
+          'date',
+          [sequelize.fn('COUNT', sequelize.col('id')), 'total_records'],
+          [sequelize.fn('COUNT', sequelize.literal("CASE WHEN status = 'present' THEN 1 END")), 'present_count'],
+          [sequelize.fn('COUNT', sequelize.literal("CASE WHEN status = 'absent' THEN 1 END")), 'absent_count'],
+          [sequelize.fn('COUNT', sequelize.literal("CASE WHEN status = 'late' THEN 1 END")), 'late_count']
+        ],
+        group: ['date'],
+        order: [['date', 'DESC']],
+        raw: true
+      });
+
+      return res.status(200).json({
+        success: true,
+        data: results
+      });
+    } catch (error) {
+      console.error('Error fetching attendance by date:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: error.message
+      });
+    }
+  },
+
+  // Group by Student
+  async getAttendanceByStudent(req, res) {
+    try {
+      const { start_date, end_date, class_id, status } = req.query;
+
+      const whereClause = {};
+      if (class_id) whereClause.class_id = class_id;
+      if (status) whereClause.status = status;
+      if (start_date || end_date) {
+        whereClause.date = {};
+        if (start_date) whereClause.date[Op.gte] = start_date;
+        if (end_date) whereClause.date[Op.lte] = end_date;
+      }
+
+      const results = await Attendance.findAll({
+        where: whereClause,
+        attributes: [
+          'student_id',
+          [sequelize.fn('COUNT', sequelize.col('Attendance.id')), 'total_records'],
+          [sequelize.fn('COUNT', sequelize.literal("CASE WHEN Attendance.status = 'present' THEN 1 END")), 'present_count'],
+          [sequelize.fn('COUNT', sequelize.literal("CASE WHEN Attendance.status = 'absent' THEN 1 END")), 'absent_count'],
+          [sequelize.fn('COUNT', sequelize.literal("CASE WHEN Attendance.status = 'late' THEN 1 END")), 'late_count']
+        ],
+        include: [
+          {
+            model: Student,
+            as: 'student',
+            attributes: ['std_id', 'std_fname', 'std_mname', 'std_lname', 'std_email']
+          }
+        ],
+        group: ['student_id', 'student.std_id'],
+        raw: false
+      });
+
+      return res.status(200).json({
+        success: true,
+        data: results
+      });
+    } catch (error) {
+      console.error('Error fetching attendance by student:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: error.message
+      });
+    }
+  },
+
+  // Group by Employee
+  async getAttendanceByEmployee(req, res) {
+    try {
+      const { start_date, end_date, status } = req.query;
+
+      const whereClause = {};
+      if (status) whereClause.status = status;
+      if (start_date || end_date) {
+        whereClause.date = {};
+        if (start_date) whereClause.date[Op.gte] = start_date;
+        if (end_date) whereClause.date[Op.lte] = end_date;
+      }
+
+      const results = await Attendance.findAll({
+        where: whereClause,
+        attributes: [
+          'emp_id',
+          [sequelize.fn('COUNT', sequelize.col('Attendance.id')), 'total_records'],
+          [sequelize.fn('COUNT', sequelize.literal("CASE WHEN Attendance.status = 'present' THEN 1 END")), 'present_count'],
+          [sequelize.fn('COUNT', sequelize.literal("CASE WHEN Attendance.status = 'absent' THEN 1 END")), 'absent_count'],
+          [sequelize.fn('COUNT', sequelize.literal("CASE WHEN Attendance.status = 'late' THEN 1 END")), 'late_count']
+        ],
+        include: [
+          {
+            model: Employee,
+            as: 'recordedBy',
+            attributes: ['emp_id', 'emp_name', 'emp_role', 'emp_email']
+          }
+        ],
+        group: ['emp_id', 'recordedBy.emp_id'],
+        raw: false
+      });
+
+      return res.status(200).json({
+        success: true,
+        data: results
+      });
+    } catch (error) {
+      console.error('Error fetching attendance by employee:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: error.message
+      });
+    }
+  },
+
+  // Group by Status
+  async getAttendanceByStatus(req, res) {
+    try {
+      const { start_date, end_date, class_id } = req.query;
+
+      const whereClause = {};
+      if (class_id) whereClause.class_id = class_id;
+      if (start_date || end_date) {
+        whereClause.date = {};
+        if (start_date) whereClause.date[Op.gte] = start_date;
+        if (end_date) whereClause.date[Op.lte] = end_date;
+      }
+
+      const results = await Attendance.findAll({
+        where: whereClause,
+        attributes: [
+          'status',
+          [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+        ],
+        group: ['status'],
+        raw: true
+      });
+
+      return res.status(200).json({
+        success: true,
+        data: results
+      });
+    } catch (error) {
+      console.error('Error fetching attendance by status:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: error.message
+      });
+    }
+  },
+
+  // Group by Method
+  async getAttendanceByMethod(req, res) {
+    try {
+      const { start_date, end_date, class_id } = req.query;
+
+      const whereClause = {};
+      if (class_id) whereClause.class_id = class_id;
+      if (start_date || end_date) {
+        whereClause.date = {};
+        if (start_date) whereClause.date[Op.gte] = start_date;
+        if (end_date) whereClause.date[Op.lte] = end_date;
+      }
+
+      const results = await Attendance.findAll({
+        where: whereClause,
+        attributes: [
+          'method',
+          [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+        ],
+        group: ['method'],
+        raw: true
+      });
+
+      return res.status(200).json({
+        success: true,
+        data: results
+      });
+    } catch (error) {
+      console.error('Error fetching attendance by method:', error);
       return res.status(500).json({
         success: false,
         message: 'Internal server error',

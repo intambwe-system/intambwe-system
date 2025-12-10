@@ -32,6 +32,7 @@ const StudentManagementDashboard = () => {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [classQuery, setClassQuery] = useState('');
   const [selectedClass, setSelectedClass] = useState(null);
+ 
 
   const navigate = useNavigate()
 

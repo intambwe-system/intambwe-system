@@ -46,7 +46,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       children: [
         { title: 'Employees', icon: Users, path: '/employee/dashboard/employees' },
         { title: 'Departments', icon: Building2, path: '/employee/dashboard/department' },
-        { title: 'Trades', icon: Building2, path: '/employee/dashboard/trades' },
+       
       ]
     },
     {
@@ -78,10 +78,12 @@ const Sidebar = ({ isOpen, onClose }) => {
       roles: ['teacher', 'admin'],
       color: 'from-indigo-500 to-blue-500',
       children: [
-        { title: 'Students', icon: Users, path: '/employee/dashboard/students' },
         { title: 'Classes', icon: GraduationCap, path: '/employee/dashboard/classes' },
+         { title: 'Trades', icon: Building2, path: '/employee/dashboard/trades' },
+        { title: 'Students', icon: Users, path: '/employee/dashboard/students' },
         { title: 'Grades', icon: Award, path: '/employee/dashboard/grades' },
-        { title: 'Subjects', icon: BookOpen, path: '/employee/dashboard/subjects' },
+        { title: 'Subjects', icon: BookOpen, path: '/employee/dashboard/subjects', },
+
         // Admin-only assign subjects entry (UI; actual access is enforced by route guard)
         { title: 'Assign Subjects', icon: BookOpen, path: '/employee/dashboard/assign-class-subjects' },
       ]

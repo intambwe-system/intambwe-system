@@ -80,7 +80,7 @@ Subject.belongsTo(Department, { foreignKey: "dpt_id" });
 Subject.hasMany(Marks, { foreignKey: "sbj_id", onDelete: "CASCADE" });
 Subject.hasMany(TimetableEntry, { foreignKey: "sbj_id", onDelete: "SET NULL" });
 
-Subject.hasMany(Attendance, { foreignKey: "subject_id", onDelete: "SET NULL" });
+
 Subject.hasMany(ClassSubject, { foreignKey: "sbj_id", onDelete: "CASCADE" });
 
 // ClassSubject Associations
