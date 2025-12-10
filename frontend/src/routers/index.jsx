@@ -20,8 +20,13 @@ import StudentViewPage from "../components/dashboard/student/StudentViewPage";
 import AssignClassSubjectsPage from "../pages/dashboard/AssignClassSubjectsPage";
 import NotFound from "../pages/NotFound";
 import AttendanceMarkingPage from "../pages/dashboard/AttendanceMarkingPage";
+import MySubjectsPage from "../pages/dashboard/teacher/MySubjectsPage";
+import ClassSelectionPage from "../pages/dashboard/ClassSelectionPage";
+import StudentListPage from "../pages/dashboard/StudentListPage";
+import AddMarksPage from "../pages/dashboard/AddMarksPage";
 
 const LoadingSpinner = () => (
+
   <div className="loading-spinner">
     <div className="spinner"></div>
     <p>Loading...</p>
@@ -70,6 +75,11 @@ const router = createBrowserRouter([
           { path: "subjects", element: <SubjectPage /> },
           { path: "assign-class-subjects", element: <AssignClassSubjectsPage /> },
           { path: "attendance", element: <AttendanceMarkingPage /> },
+          { path: "my-subjects", element: <MySubjectsPage /> },
+             { path:"class", element: <ClassSelectionPage /> },
+    { path: "class/:classId", element: <StudentListPage /> },
+    { path: "class/:classId/student/:stdId/subject/:sbjId", element: <AddMarksPage /> },
+ 
         ],
       },
       // Any unknown /employee/... path (including unknown dashboard URLs) should render
@@ -77,11 +87,23 @@ const router = createBrowserRouter([
       { path: "*", element: <NotFound /> },
     ],
   },
+  // Add these in your employee dashboard routes
+{
+  path: "marks",
+  element: <Outlet />,
+  children: [
+    { index: true, element: <ClassSelectionPage /> },
+    { path: "class/:classId", element: <StudentListPage /> },
+    { path: "class/:classId/student/:stdId/subject/:sbjId", element: <AddMarksPage /> },
+  ],
+},
+
   {
     path: "/auth",
     element: <Outlet />,
     children: [{ path: "employee/login", element: <EmployeeLogin /> }],
   },
+ 
   {
     path: "*",
     element: <NotFound />,

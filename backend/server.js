@@ -1,11 +1,15 @@
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
+const cookieParser = require("cookie-parser");
+const morgan = require("morgan");
 
+// Database
 const db = require("./model");
+
+// Routes
 const employeeRoute = require("./routes/employee");
 const studentRoutes = require("./routes/student");
-
 const attendanceRoutes = require("./routes/attendance/attendanceRoutes");
 const classRoutes = require("./routes/class/classRoutes");
 const marksRoutes = require("./routes/marks/marksRoutes");
@@ -16,13 +20,13 @@ const timetableRoutes = require("./routes/timetable/timetableRoutes");
 const timetableEntryRoutes = require("./routes/timetableEntry/timetableEntryRoutes");
 const tradeRoutes = require("./routes/trade/tradeRoutes");
 
-const cookieParser = require("cookie-parser");
-const morgan = require("morgan");
+// ✅ Correct path for assessment route
+const assessmentRoutes = require("./routes/marks/marksRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-/* ✅ ONE CORS CONFIG — THIS IS ENOUGH */
+/* CORS Configuration */
 app.use(
   cors({
     origin: "http://localhost:5173",
@@ -35,7 +39,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
 
-/* ✅ Routes */
+/* API Routes */
 app.use("/api/employee", employeeRoute);
 app.use("/api/student", studentRoutes);
 app.use("/api/attendance", attendanceRoutes);
@@ -47,13 +51,14 @@ app.use("/api/subject", subjectRoutes);
 app.use("/api/timetable", timetableRoutes);
 app.use("/api/timetable-entry", timetableEntryRoutes);
 app.use("/api/trade", tradeRoutes);
+app.use("/api/assessment", assessmentRoutes);
 
-/* ✅ Health check */
+/* Health Check Route */
 app.get("/", (req, res) => {
   res.json({ message: "Attendance Management API is running" });
 });
 
-/* ✅ Error handler */
+/* Global Error Handler */
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({
@@ -62,9 +67,9 @@ app.use((err, req, res, next) => {
   });
 });
 
-/* ✅ Start server */
+/* Start Server */
 db.sequelize
-  .sync({ force: false , alter: false })
+  .sync({ force: false, alter: false })
   .then(() => {
     console.log("Database synchronized");
     app.listen(PORT, () => {

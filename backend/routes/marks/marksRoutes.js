@@ -1,23 +1,16 @@
-const express = require('express');
-const router = express.Router();
-const marksController = require('../../controllers/marks/marksController');
-const { authenticateToken, authorizeRoles } = require('../../middleware/employeeAuth');
+const router = require("express").Router();
+const marksController = require("../../controllers/marrks/assessment.controller");
 
-// CREATE or update marks (upsert behavior)
-router.post('/', authenticateToken, authorizeRoles('admin'), marksController.createMarks);
+// Get all students of a subject
+router.get("/subject/:sbj_id/students", marksController.getStudentsBySubject);
 
-// READ marks
-router.get('/', authenticateToken, marksController.getMarks);
-router.get('/:id', authenticateToken, marksController.getMarksById);
+// Add marks for multiple students
+router.post("/subject/add", marksController.addMarks);
 
-// UPDATE marks
-router.put('/:id', authenticateToken, authorizeRoles('admin'), marksController.updateMarks);
-router.patch('/:id', authenticateToken, authorizeRoles('admin'), marksController.updateMarks);
+// Update subject weight
+router.put("/subject/:sbj_id/weight", marksController.updateSubjectWeight);
 
-// DELETE marks
-router.delete('/:id', authenticateToken, authorizeRoles('admin'), marksController.deleteMarks);
-
-// Student transcript
-router.get('/student/:std_id/transcript', authenticateToken, marksController.getStudentTranscript);
+// Get all marks of a subject
+router.get("/subject/:sbj_id/marks", marksController.getMarksBySubject);
 
 module.exports = router;

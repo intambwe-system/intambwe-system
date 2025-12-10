@@ -82,8 +82,8 @@ const Sidebar = ({ isOpen, onClose }) => {
          { title: 'Trades', icon: Building2, path: '/employee/dashboard/trades' },
         { title: 'Students', icon: Users, path: '/employee/dashboard/students' },
         { title: 'Grades', icon: Award, path: '/employee/dashboard/grades' },
-        { title: 'Subjects', icon: BookOpen, path: '/employee/dashboard/subjects', },
-
+        { title: 'Subjects', icon: BookOpen, path: '/employee/dashboard/subjects' },
+        { title: 'My Subjects', icon: BookOpen, path: '/employee/dashboard/my-subjects' },
         // Admin-only assign subjects entry (UI; actual access is enforced by route guard)
         { title: 'Assign Subjects', icon: BookOpen, path: '/employee/dashboard/assign-class-subjects' },
       ]
@@ -221,7 +221,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       </aside>
 
       {/* Custom Scrollbar Styles */}
-      <style jsx>{`
+      <style>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 6px;
         }
