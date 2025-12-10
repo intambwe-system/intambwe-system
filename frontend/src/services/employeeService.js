@@ -102,6 +102,20 @@ class EmployeeService {
       throw new Error(msg);
     }
   }
+
+  // GET subjects assigned to the logged-in teacher
+  async getMyTeachingSubjects() {
+    try {
+      const response = await api.get('/employee/me/subjects');
+      return response.data;
+    } catch (error) {
+      const msg =
+        error.response?.data?.message ||
+        error.message ||
+        'Failed to load assigned subjects';
+      throw new Error(msg);
+    }
+  }
 }
 
 const employeeService = new EmployeeService();
@@ -117,4 +131,5 @@ export const {
   updateEmployee,
   patchEmployee,
   deleteEmployee,
+  getMyTeachingSubjects,
 } = employeeService;

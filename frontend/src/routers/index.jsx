@@ -18,9 +18,7 @@ import StudentRegistrationForm from "../components/dashboard/student/StudentRegi
 import StudentViewPage from "../components/dashboard/student/StudentViewPage";
 import AssignClassSubjectsPage from "../pages/dashboard/AssignClassSubjectsPage";
 import NotFound from "../pages/NotFound";
-import ClassSelectionPage from "../pages/dashboard/ClassSelectionPage";
-import StudentListPage from "../pages/dashboard/StudentListPage";
-import AddMarksPage from "../pages/dashboard/AddMarksPage";
+import MySubjectsPage from "../pages/dashboard/teacher/MySubjectsPage";
 
 const LoadingSpinner = () => (
 
@@ -71,11 +69,7 @@ const router = createBrowserRouter([
           { path: "classes", element: <ClassManagementDashboard /> },
           { path: "subjects", element: <SubjectPage /> },
           { path: "assign-class-subjects", element: <AssignClassSubjectsPage /> },
-          { path: "class", element: <ClassSelectionPage /> },
-      { path: "class/:classId", element: <StudentListPage /> },
-    { path: "class/:classId/student/:stdId/subject/:sbjId", element: <AddMarksPage /> },
- 
-          
+          { path: "my-subjects", element: <MySubjectsPage /> },
         ],
       },
       // Any unknown /employee/... path (including unknown dashboard URLs) should render

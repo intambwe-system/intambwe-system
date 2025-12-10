@@ -117,6 +117,10 @@ export default function NotFound() {
                   <span className="text-blue-500 mr-2">•</span>
                   <span>Access other student services and notices</span>
                 </li>
+                <li className="flex items-start">
+                  <span className="text-blue-500 mr-2">•</span>
+                  <span>View attendance history of student and submit tickets</span>
+                </li>
               </ul>
 
               <Link

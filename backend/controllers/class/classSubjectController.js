@@ -97,6 +97,43 @@ const classSubjectController = {
       });
     }
   },
+
+  async getMyTeachingSubjects(req, res) {
+    try {
+      const teacherId = req.employee?.emp_id;
+
+      if (!teacherId) {
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required',
+        });
+      }
+
+      const assignments = await ClassSubject.findAll({
+        where: { teacher_id: teacherId },
+        include: [
+          {
+            model: Subject,
+            attributes: ['sbj_id', 'sbj_name', 'sbj_code'],
+          },
+          {
+            model: Class,
+            attributes: ['class_id', 'class_name'],
+          },
+        ],
+        order: [['createdAt', 'DESC']],
+      });
+
+      return res.status(200).json({ success: true, data: assignments });
+    } catch (error) {
+      console.error('Error fetching teacher subjects:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: error.message,
+      });
+    }
+  },
 };
 
 module.exports = classSubjectController;
