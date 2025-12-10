@@ -43,9 +43,10 @@ const Header = ({ onMenuClick }) => {
     setShowDropdown(false);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setShowDropdown(false);
-    logout();
+    await logout();
+    navigate('/auth/employee/login', { replace: true });
   };
 
   return (

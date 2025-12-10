@@ -24,9 +24,9 @@ const Sidebar = ({ isOpen, onClose }) => {
     onClose?.();
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
+  const handleLogout = async () => {
+    await logout();
+    navigate('/auth/employee/login', { replace: true });
   };
 
   // Define menu based on roles — fully dynamic
@@ -81,7 +81,9 @@ const Sidebar = ({ isOpen, onClose }) => {
         { title: 'Students', icon: Users, path: '/employee/dashboard/students' },
         { title: 'Classes', icon: GraduationCap, path: '/employee/dashboard/classes' },
         { title: 'Grades', icon: Award, path: '/employee/dashboard/grades' },
-        { title: 'Subjects', icon: BookOpen, path: '/employee/dashboard/subjects' }
+        { title: 'Subjects', icon: BookOpen, path: '/employee/dashboard/subjects' },
+        // Admin-only assign subjects entry (UI; actual access is enforced by route guard)
+        { title: 'Assign Subjects', icon: BookOpen, path: '/employee/dashboard/assign-class-subjects' },
       ]
     }
   ];

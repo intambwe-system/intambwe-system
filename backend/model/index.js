@@ -12,6 +12,7 @@ const SpecialEvent = require("./SpecialEvent");
 const Attendance = require("./Attendance");
 const Trade = require("./Trade");
 const SubjectTrade = require("./SubjectTrade");
+const ClassSubject = require("./ClassSubject");
 
 // Define Associations
 
@@ -52,6 +53,7 @@ Class.hasMany(Marks, { foreignKey: "class_id", onDelete: "SET NULL" });
 Class.hasMany(TimetableEntry, { foreignKey: "class_id", onDelete: "CASCADE" });
 Class.hasMany(SpecialEvent, { foreignKey: "class_id", onDelete: "CASCADE" });
 Class.hasMany(Attendance, { foreignKey: "class_id", onDelete: "CASCADE" });
+Class.hasMany(ClassSubject, { foreignKey: "class_id", onDelete: "CASCADE" });
 Trade.hasMany(Class, {
   foreignKey: "trade_id",
   as: "classes",
@@ -76,6 +78,12 @@ Subject.belongsTo(Department, { foreignKey: "dpt_id" });
 Subject.hasMany(Marks, { foreignKey: "sbj_id", onDelete: "CASCADE" });
 Subject.hasMany(TimetableEntry, { foreignKey: "sbj_id", onDelete: "SET NULL" });
 Subject.hasMany(Attendance, { foreignKey: "subject_id", onDelete: "SET NULL" });
+Subject.hasMany(ClassSubject, { foreignKey: "sbj_id", onDelete: "CASCADE" });
+
+// ClassSubject Associations
+ClassSubject.belongsTo(Class, { foreignKey: "class_id" });
+ClassSubject.belongsTo(Subject, { foreignKey: "sbj_id" });
+ClassSubject.belongsTo(Employee, { foreignKey: "teacher_id", as: "assignedTeacher" });
 
 // Subject–Trade many-to-many association through SubjectTrade
 Subject.belongsToMany(Trade, {
@@ -149,4 +157,5 @@ module.exports = {
   SubjectTrade,
   syncDatabase,
   Trade,
+  ClassSubject,
 };

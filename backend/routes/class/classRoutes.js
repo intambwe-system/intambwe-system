@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const classController = require('../../controllers/class/classController');
+const classSubjectController = require('../../controllers/class/classSubjectController');
 const { authenticateToken, authorizeRoles } = require('../../middleware/employeeAuth');
 
 // CREATE class
@@ -21,5 +22,9 @@ router.delete('/:id', authenticateToken, authorizeRoles('admin'), classControlle
 router.get('/:id/students', authenticateToken, classController.getClassStudents);
 router.get('/:id/subjects', authenticateToken, classController.getClassSubjects);
 router.get('/:id/overview', authenticateToken, classController.getClassOverview);
+
+// Class subject assignments (many-to-many with extra data)
+router.get('/:id/assignments', authenticateToken, classSubjectController.getClassAssignments);
+router.post('/:id/assign-subjects', authenticateToken, authorizeRoles('admin'), classSubjectController.assignSubjects);
 
 module.exports = router;

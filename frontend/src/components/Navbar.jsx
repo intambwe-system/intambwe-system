@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Menu, X, GraduationCap, Mail, Phone, Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
 
 export default function SchoolLandingNavbar() {
@@ -87,9 +88,12 @@ export default function SchoolLandingNavbar() {
 
             {/* Right Side Buttons */}
             <div className="flex items-center space-x-3">
-              <button className="hidden sm:block px-4 py-2 text-blue-600 hover:text-blue-700 font-medium transition-colors">
+              <Link
+                to="/auth/employee/login"
+                className="hidden sm:block px-4 py-2 text-blue-600 hover:text-blue-700 font-medium transition-colors"
+              >
                 Sign In
-              </button>
+              </Link>
               <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
                 Get Started
               </button>
@@ -138,9 +142,13 @@ export default function SchoolLandingNavbar() {
           ))}
           
           <div className="mt-6 pt-6 border-t space-y-2">
-            <button className="w-full py-2 px-4 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors font-medium">
+            <Link
+              to="/auth/employee/login"
+              className="block w-full py-2 px-4 text-center text-blue-600 hover:bg-blue-50 rounded-lg transition-colors font-medium"
+              onClick={() => setIsSidebarOpen(false)}
+            >
               Sign In
-            </button>
+            </Link>
             <button className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
               Get Started
             </button>

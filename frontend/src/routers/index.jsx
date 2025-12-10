@@ -15,6 +15,8 @@ import StudentManagementDashboard from "../pages/dashboard/StudentManagementDash
 import ClassManagementDashboard from "../pages/dashboard/class/ClassManagement";
 import StudentDashboard from "../pages/dashboard/StudentPage";
 import SubjectPage from "../pages/dashboard/SubjectPage";
+import AssignClassSubjectsPage from "../pages/dashboard/AssignClassSubjectsPage";
+import NotFound from "../pages/NotFound";
 
 const LoadingSpinner = () => (
   <div className="loading-spinner">
@@ -59,12 +61,14 @@ const router = createBrowserRouter([
           { path: "employees", element: <EmployeeManagementDashboard /> },
           { path: "trades", element: <TradeManagementSystem /> },
           { path: "students", element: <StudentManagementDashboard /> },
-          {
-            path: "classes",
-            element: <ClassManagementDashboard />,
-          },
+          { path: "classes", element: <ClassManagementDashboard /> },
+          { path: "subjects", element: <SubjectPage /> },
+          { path: "assign-class-subjects", element: <AssignClassSubjectsPage /> },
         ],
       },
+      // Any unknown /employee/... path (including unknown dashboard URLs) should render
+      // a full-screen NotFound page WITHOUT the dashboard layout (no sidebar/header).
+      { path: "*", element: <NotFound /> },
     ],
   },
   {
@@ -74,7 +78,7 @@ const router = createBrowserRouter([
   },
   {
     path: "*",
-    element: <Navigate to="/" replace />,
+    element: <NotFound />,
   },
 ]);
 

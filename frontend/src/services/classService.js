@@ -15,6 +15,34 @@ class ClassService {
     }
   }
 
+  // GET CLASS ASSIGNMENTS (Subject + Teacher + credit + total_max)
+  async getClassAssignments(id) {
+    try {
+      const response = await api.get(`/class/${id}/assignments`);
+      return response.data;
+    } catch (error) {
+      const msg =
+        error.response?.data?.message ||
+        error.message ||
+        'Failed to load class subject assignments';
+      throw new Error(msg);
+    }
+  }
+
+  // ASSIGN SUBJECTS TO CLASS (bulk)
+  async assignSubjectsToClass(id, data) {
+    try {
+      const response = await api.post(`/class/${id}/assign-subjects`, data);
+      return response.data;
+    } catch (error) {
+      const msg =
+        error.response?.data?.message ||
+        error.message ||
+        'Failed to assign subjects to class';
+      throw new Error(msg);
+    }
+  }
+
   // GET ALL (supports filters)
   async getAllClasses(filters = {}) {
     try {
@@ -139,6 +167,8 @@ export const {
   getClassStudents,
   getClassSubjects,
   getClassOverview,
+  getClassAssignments,
+  assignSubjectsToClass,
   updateClass,
   patchClass,
   deleteClass,
