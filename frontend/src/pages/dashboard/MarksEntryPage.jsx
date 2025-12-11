@@ -30,7 +30,7 @@ const MarksEntryPage = () => {
   const fetchClasses = async () => {
       setLoading(true);
    
-      setSuccess('');
+   
       
       try {
         const response = await classService.getAllClasses();
@@ -49,7 +49,7 @@ const MarksEntryPage = () => {
     const fetchSubjects = async () => {
       try {
         const params = selectedClass ? { class_id: selectedClass } : {};
-        const response = await subjectService.getAllSubjects(params);
+        const response = await subjectService.getAllSubjects();
         setSubjects(response.data || []);
       } catch (error) {
         console.error('Error fetching subjects:', error);
