@@ -51,19 +51,19 @@ const Marks = sequelize.define('Marks', {
   total_marks: {
     type: DataTypes.VIRTUAL,
     get() {
-      const cat1 = this.getDataValue('cat_1') || 0;
-      const cat2 = this.getDataValue('cat_2') || 0;
-      const cat3 = this.getDataValue('cat_3') || 0;
-      const exam = this.getDataValue('exam') || 0;
+      const cat1 = parseFloat(this.getDataValue('cat_1')) || 0;
+      const cat2 = parseFloat(this.getDataValue('cat_2')) || 0;
+      const cat3 = parseFloat(this.getDataValue('cat_3')) || 0;
+      const exam = parseFloat(this.getDataValue('exam')) || 0;
       return parseFloat((cat1 + cat2 + cat3 + exam).toFixed(2));
     }
   },
   ac_year: {
-    type: DataTypes.STRING(10),
+    type: DataTypes.STRING(100),
     allowNull: true
   },
   semester: {
-    type: DataTypes.STRING(20),
+    type: DataTypes.STRING(50),
     allowNull: true
   },
   emp_id: {

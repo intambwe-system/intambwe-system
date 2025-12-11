@@ -22,6 +22,7 @@ import classService from "../../../services/classService";
 import tradeService from "../../../services/tradeService";
 import departmentService from "../../../services/departmentService";
 import employeeService from "../../../services/employeeService";
+import { useEmployeeAuth } from "../../../contexts/EmployeeAuthContext";
 
 const ClassManagementDashboard = () => {
   const [classes, setClasses] = useState([]);
@@ -45,7 +46,7 @@ const ClassManagementDashboard = () => {
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedClass, setSelectedClass] = useState(null);
   const [formError, setFormError] = useState("");
-
+  const {employee} = useEmployeeAuth()
   const [formData, setFormData] = useState({
     class_name: "",
     trade_id: "",
@@ -66,25 +67,34 @@ const ClassManagementDashboard = () => {
   }, []);
 
   const loadAllData = async () => {
+    
     setLoading(true);
     try {
       const [classRes, tradeRes, deptRes, empRes] = await Promise.all([
         classService.getAllClasses(),
-        tradeService.getAllTrades(),
-        departmentService.getAllDepartments(),
-        employeeService.getAllEmployees(),
-      ]);
 
+
+      employee.emp_role == 'admin' ?     tradeService.getAllTrades() : null,
+      employee.emp_role == 'admin' ?   departmentService.getAllDepartments() : null,
+      employee.emp_role == 'admin' ?  employeeService.getAllEmployees() : null,
+    ]);
+    
+    
       const classData = Array.isArray(classRes)
         ? classRes
-        : classRes.data || [];
-      setAllClasses(classData);
+        : classRes?.data || [];
+        let filteredClass = classData
+        if(employee.emp_role == 'teacher'){
+
+           filteredClass = classData.filter(arr=>  arr.emp_id == employee.emp_id)
+        }
+      setAllClasses(filteredClass);
       setClasses(classData);
 
-      setTrades(Array.isArray(tradeRes) ? tradeRes : tradeRes.data || []);
-      setDepartments(Array.isArray(deptRes) ? deptRes : deptRes.data || []);
+      setTrades(Array.isArray(tradeRes) ? tradeRes : tradeRes?.data || []);
+      setDepartments(Array.isArray(deptRes) ? deptRes : deptRes?.data || []);
 
-      const allEmps = Array.isArray(empRes) ? empRes : empRes.data || [];
+      const allEmps = Array.isArray(empRes) ? empRes : empRes?.data || [];
       setTeachers(allEmps.filter((e) => e.emp_role === "teacher"));
     } catch (err) {
       setError(err.message || "Failed to load data");

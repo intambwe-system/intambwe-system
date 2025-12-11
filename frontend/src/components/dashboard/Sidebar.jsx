@@ -131,7 +131,7 @@ const Sidebar = ({ isOpen = true, onClose = () => {} }) => {
           title: 'Classes', 
           icon: GraduationCap, 
           path: '/employee/dashboard/classes',
-          roles: [ 'admin']
+          roles: ['teacher', 'admin']
         },
         { 
           title: 'Trades', 

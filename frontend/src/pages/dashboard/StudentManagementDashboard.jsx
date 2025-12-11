@@ -10,6 +10,7 @@ import { Combobox } from '@headlessui/react';
 import studentService from '../../services/studentService';
 import classService from '../../services/classService';
 import { useNavigate } from 'react-router-dom';
+import { useEmployeeAuth } from '../../contexts/EmployeeAuthContext';
 
 const StudentManagementDashboard = () => {
   const [students, setStudents] = useState([]);
@@ -32,6 +33,8 @@ const StudentManagementDashboard = () => {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [classQuery, setClassQuery] = useState('');
   const [selectedClass, setSelectedClass] = useState(null);
+
+  const {employee} = useEmployeeAuth()
  
 
   const navigate = useNavigate()
@@ -56,7 +59,7 @@ const StudentManagementDashboard = () => {
     await Promise.all([loadStudents(), loadClasses()]);
   };
 
-  const loadStudents = async () => {
+  const loadStudents = async () => {  
     try {
       setLoading(true);
       const res = await studentService.getAllStudents();
@@ -476,14 +479,15 @@ const StudentManagementDashboard = () => {
                 <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                 <span className="text-sm">Refresh</span>
               </motion.button>
-              <motion.button
+             
+             { employee.emp_role != 'teacher' && <motion.button
                 whileHover={{ scale: 1.05 }}
                 onClick={handleAddStudent}
                 className="flex items-center space-x-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded font-medium shadow-md"
               >
                 <Plus className="w-4 h-4" />
                 <span className="text-sm">Add Student</span>
-              </motion.button>
+              </motion.button>}
             </div>
           </div>
         </div>

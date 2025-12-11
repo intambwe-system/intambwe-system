@@ -5,6 +5,7 @@ import { Search, CheckCircle, XCircle, Clock, Save, AlertCircle, Filter } from '
 import studentService from '../../services/studentService';
 import classService from '../../services/classService';
 import attendanceService from '../../services/attendanceService';
+import { useEmployeeAuth } from '../../contexts/EmployeeAuthContext';
 
 const AttendanceMarkingPage = () => {
   const [classes, setClasses] = useState([]);
@@ -15,6 +16,7 @@ const AttendanceMarkingPage = () => {
   const [success, setSuccess] = useState('');
   const [isViewMode, setIsViewMode] = useState(false);
   const [attendanceExists, setAttendanceExists] = useState(false);
+  const {employee} = useEmployeeAuth()
   
   // Get current date and time
 const getCurrentDate = () => {
@@ -41,7 +43,7 @@ const getCurrentTime = () => {
     const storedData = stored ? JSON.parse(stored) : {};
     
     return {
-      selectedClassId: params.get('classId') || storedData.selectedClassId || '',
+      selectedClassId: params.get('classId') || employee?.class_id || storedData.selectedClassId || '',
       attendanceDate: params.get('date') || storedData.attendanceDate || getCurrentDate(),
       attendanceTime: params.get('timeIn') || storedData.attendanceTime || getCurrentTime(),
       timeOut: params.get('timeOut') || storedData.timeOut || '',

@@ -16,39 +16,33 @@ const MarksEntryPage = () => {
   const [academicYear, setAcademicYear] = useState('2024/2025');
   const [semester, setSemester] = useState('Semester 1');
   const [marksData, setMarksData] = useState({});
-  const [existingMarks, setExistingMarks] = useState({});
   const [loading, setLoading] = useState(false);
+  const [loadingMarks, setLoadingMarks] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Mock classes data - replace with actual API call
   useEffect(() => {
-    fetchClasses()
+    fetchClasses();
   }, []);
 
   const fetchClasses = async () => {
-      setLoading(true);
-   
-   
-      
-      try {
-        const response = await classService.getAllClasses();
-        const classData = response.data || response;
-        setClasses(classData);
-      } catch (err) {
-        console.log(err.message || 'Failed to load classes');
-        setClasses([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+    setLoading(true);
+    try {
+      const response = await classService.getAllClasses();
+      const classData = response.data || response;
+      setClasses(classData);
+    } catch (err) {
+      console.log(err.message || 'Failed to load classes');
+      setClasses([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // Fetch subjects when component mounts or class changes
   useEffect(() => {
     const fetchSubjects = async () => {
       try {
-        const params = selectedClass ? { class_id: selectedClass } : {};
         const response = await subjectService.getAllSubjects();
         setSubjects(response.data || []);
       } catch (error) {
@@ -57,13 +51,13 @@ const MarksEntryPage = () => {
       }
     };
     fetchSubjects();
-  }, [selectedClass]);
+  }, []);
 
-  // Fetch students when class is selected
   useEffect(() => {
     const fetchStudents = async () => {
       if (!selectedClass) {
         setStudents([]);
+        setMarksData({});
         return;
       }
 
@@ -73,15 +67,13 @@ const MarksEntryPage = () => {
         const studentsData = response.data || [];
         setStudents(studentsData);
         
-        // Initialize marks data structure
         const initialMarks = {};
         studentsData.forEach(student => {
           initialMarks[student.std_id] = {
             cat_1: '',
             cat_2: '',
             cat_3: '',
-            exam: '',
-            remark: ''
+            exam: ''
           };
         });
         setMarksData(initialMarks);
@@ -96,45 +88,58 @@ const MarksEntryPage = () => {
     fetchStudents();
   }, [selectedClass]);
 
-  // Fetch existing marks when subject is selected
+  // Updated useEffect to refetch marks when semester or academicYear changes
   useEffect(() => {
     const fetchExistingMarks = async () => {
       if (!selectedClass || !selectedSubject || students.length === 0) return;
 
+      setLoadingMarks(true);
       try {
         const response = await marksService.getMarks({
           class_id: selectedClass,
           sbj_id: selectedSubject,
           ac_year: academicYear,
-          semester: semester
+          semester: semester,
+          limit: 1000
         });
 
         const marks = response.data || [];
-        const marksMap = {};
-        marks.forEach(mark => {
-          marksMap[mark.std_id] = {
-            cat_1: mark.cat_1 || '',
-            cat_2: mark.cat_2 || '',
-            cat_3: mark.cat_3 || '',
-            exam: mark.exam || '',
-            remark: mark.remark || ''
-          };
-        });
 
-        setExistingMarks(marksMap);
+        console.warn(response);
         
-        // Update marksData with existing values
+        // Reset marks data with empty values first
         setMarksData(prev => {
-          const updated = { ...prev };
-          Object.keys(marksMap).forEach(stdId => {
-            if (updated[stdId]) {
-              updated[stdId] = { ...marksMap[stdId] };
+          const updated = {};
+          
+          // Initialize all students with empty marks
+          students.forEach(student => {
+            updated[student.std_id] = {
+              cat_1: '',
+              cat_2: '',
+              cat_3: '',
+              exam: ''
+            };
+          });
+          
+          // Then populate with existing marks if any
+          marks.forEach(mark => {
+            if (updated[mark.std_id]) {
+              updated[mark.std_id] = {
+                cat_1: mark.cat_1 !== null && mark.cat_1 !== undefined ? mark.cat_1 : '',
+                cat_2: mark.cat_2 !== null && mark.cat_2 !== undefined ? mark.cat_2 : '',
+                cat_3: mark.cat_3 !== null && mark.cat_3 !== undefined ? mark.cat_3 : '',
+                exam: mark.exam !== null && mark.exam !== undefined ? mark.exam : ''
+              };
             }
           });
+          
           return updated;
         });
       } catch (error) {
         console.error('Error fetching existing marks:', error);
+        setMessage({ type: 'error', text: 'Failed to load existing marks' });
+      } finally {
+        setLoadingMarks(false);
       }
     };
 
@@ -142,8 +147,26 @@ const MarksEntryPage = () => {
   }, [selectedClass, selectedSubject, academicYear, semester, students]);
 
   const handleMarksChange = (studentId, field, value) => {
-    // Validate numeric input
-    if (value !== '' && (isNaN(value) || parseFloat(value) < 0)) {
+    // Allow empty string
+    if (value === '') {
+      setMarksData(prev => ({
+        ...prev,
+        [studentId]: {
+          ...prev[studentId],
+          [field]: value
+        }
+      }));
+      return;
+    }
+
+    // Validate that it's a number
+    const numValue = parseFloat(value);
+    if (isNaN(numValue)) {
+      return;
+    }
+
+    // Validate range: 0 to 100
+    if (numValue < 0 || numValue > 100) {
       return;
     }
 
@@ -158,14 +181,19 @@ const MarksEntryPage = () => {
 
   const calculateTotal = (studentId) => {
     const marks = marksData[studentId];
-    if (!marks) return 0;
+    if (!marks) return '0.00';
 
     const cat1 = parseFloat(marks.cat_1) || 0;
     const cat2 = parseFloat(marks.cat_2) || 0;
     const cat3 = parseFloat(marks.cat_3) || 0;
     const exam = parseFloat(marks.exam) || 0;
 
-    return (cat1 + cat2 + cat3 + exam).toFixed(2);
+    const total = cat1 + cat2 + cat3 + exam;
+    
+    // Calculate percentage out of 100
+    const percentage = (total / 400) * 100;
+
+    return percentage.toFixed(2);
   };
 
   const handleSaveMarks = async () => {
@@ -181,7 +209,6 @@ const MarksEntryPage = () => {
       const promises = students.map(student => {
         const marks = marksData[student.std_id];
         
-        // Only save if at least one mark is entered
         if (!marks.cat_1 && !marks.cat_2 && !marks.cat_3 && !marks.exam) {
           return null;
         }
@@ -195,8 +222,7 @@ const MarksEntryPage = () => {
           cat_3: marks.cat_3 ? parseFloat(marks.cat_3) : null,
           exam: marks.exam ? parseFloat(marks.exam) : null,
           ac_year: academicYear,
-          semester: semester,
-          remark: marks.remark || null
+          semester: semester
         };
 
         return marksService.createOrUpdateMarks(payload);
@@ -224,17 +250,14 @@ const MarksEntryPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      <div className=" mx-auto">
-        {/* Header */}
+      <div className="max-w-7xl mx-auto">
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Marks Entry System</h1>
           <p className="text-gray-600">Enter and manage student marks by class and subject</p>
         </div>
 
-        {/* Filters Section */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Class Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Class <span className="text-red-500">*</span>
@@ -256,7 +279,6 @@ const MarksEntryPage = () => {
               </select>
             </div>
 
-            {/* Subject Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Subject <span className="text-red-500">*</span>
@@ -276,7 +298,6 @@ const MarksEntryPage = () => {
               </select>
             </div>
 
-            {/* Academic Year */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Academic Year
@@ -290,7 +311,6 @@ const MarksEntryPage = () => {
               />
             </div>
 
-            {/* Semester */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Semester
@@ -307,7 +327,6 @@ const MarksEntryPage = () => {
             </div>
           </div>
 
-          {/* Search Bar */}
           {selectedClass && students.length > 0 && (
             <div className="mt-4">
               <div className="relative">
@@ -324,7 +343,6 @@ const MarksEntryPage = () => {
           )}
         </div>
 
-        {/* Message Display */}
         {message.text && (
           <div className={`mb-6 p-4 rounded-lg flex items-center gap-2 ${
             message.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
@@ -338,7 +356,6 @@ const MarksEntryPage = () => {
           </div>
         )}
 
-        {/* Loading State */}
         {loading && (
           <div className="bg-white rounded-lg shadow-sm p-12 text-center">
             <Loader className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-500" />
@@ -346,7 +363,13 @@ const MarksEntryPage = () => {
           </div>
         )}
 
-        {/* Marks Entry Table */}
+        {loadingMarks && selectedClass && selectedSubject && (
+          <div className="bg-blue-50 rounded-lg p-4 mb-6 flex items-center gap-2">
+            <Loader className="w-5 h-5 animate-spin text-blue-600" />
+            <span className="text-blue-800">Loading existing marks...</span>
+          </div>
+        )}
+
         {!loading && selectedClass && selectedSubject && students.length > 0 && (
           <div className="bg-white rounded-lg shadow-sm overflow-hidden">
             <div className="p-6 border-b border-gray-200">
@@ -357,6 +380,9 @@ const MarksEntryPage = () => {
                   </h2>
                   <p className="text-sm text-gray-600 mt-1">
                     {filteredStudents.length} student(s) • {academicYear} • {semester}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Each assessment is out of 100 marks. Total is calculated as percentage out of 100.
                   </p>
                 </div>
                 <button
@@ -390,22 +416,19 @@ const MarksEntryPage = () => {
                       Student Name
                     </th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      CAT 1
+                      CAT 1<br /><span className="text-[10px] font-normal text-gray-500">(out of 100)</span>
                     </th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      CAT 2
+                      CAT 2<br /><span className="text-[10px] font-normal text-gray-500">(out of 100)</span>
                     </th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      CAT 3
+                      CAT 3<br /><span className="text-[10px] font-normal text-gray-500">(out of 100)</span>
                     </th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      Exam
+                      Exam<br /><span className="text-[10px] font-normal text-gray-500">(out of 100)</span>
                     </th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      Total
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      Remark
+                      Total %<br /><span className="text-[10px] font-normal text-gray-500">(out of 100)</span>
                     </th>
                   </tr>
                 </thead>
@@ -471,17 +494,8 @@ const MarksEntryPage = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-center font-semibold text-gray-900">
-                          {calculateTotal(student.std_id)}
+                          {calculateTotal(student.std_id)}%
                         </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <input
-                          type="text"
-                          value={marksData[student.std_id]?.remark || ''}
-                          onChange={(e) => handleMarksChange(student.std_id, 'remark', e.target.value)}
-                          className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="Optional"
-                        />
                       </td>
                     </tr>
                   ))}
@@ -491,7 +505,6 @@ const MarksEntryPage = () => {
           </div>
         )}
 
-        {/* Empty State */}
         {!loading && selectedClass && selectedSubject && students.length === 0 && (
           <div className="bg-white rounded-lg shadow-sm p-12 text-center">
             <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
@@ -502,7 +515,6 @@ const MarksEntryPage = () => {
           </div>
         )}
 
-        {/* Initial State */}
         {!loading && (!selectedClass || !selectedSubject) && (
           <div className="bg-white rounded-lg shadow-sm p-12 text-center">
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
