@@ -398,8 +398,8 @@ const getCurrentTime = () => {
           : 'bg-gray-100 text-gray-600 hover:bg-amber-100');
       case 'absent':
         return baseClass + disabledClass + (isActive 
-          ? 'bg-red-500 text-white shadow-lg' 
-          : 'bg-gray-100 text-gray-600 hover:bg-red-100');
+          ? 'bg-purple-500 text-white shadow-lg' 
+          : 'bg-gray-100 text-gray-600 hover:bg-purple-100');
       default:
         return baseClass + disabledClass;
     }
@@ -515,7 +515,7 @@ const getCurrentTime = () => {
               </button>
               <button
                 onClick={markAllAbsent}
-                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors duration-200 flex items-center gap-2"
+                className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors duration-200 flex items-center gap-2"
               >
                 <XCircle size={18} />
                 Mark All Absent
