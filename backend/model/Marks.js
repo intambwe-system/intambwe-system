@@ -8,6 +8,7 @@ const Marks = sequelize.define('Marks', {
     primaryKey: true,
     autoIncrement: true
   },
+
   std_id: {
     type: DataTypes.INTEGER,
     allowNull: false,
@@ -16,6 +17,7 @@ const Marks = sequelize.define('Marks', {
       key: 'std_id'
     }
   },
+
   sbj_id: {
     type: DataTypes.INTEGER,
     allowNull: false,
@@ -24,6 +26,7 @@ const Marks = sequelize.define('Marks', {
       key: 'sbj_id'
     }
   },
+
   class_id: {
     type: DataTypes.INTEGER,
     allowNull: true,
@@ -32,40 +35,44 @@ const Marks = sequelize.define('Marks', {
       key: 'class_id'
     }
   },
-  cat_1: {
+
+  // ✅ Formative Assessments (multiple)
+  FA: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: [],
+    comment: 'Array of { score, maxScore }'
+  },
+
+  // ✅ Integrated Assessments (multiple)
+  IA: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: [],
+    comment: 'Array of { score, maxScore }'
+  },
+
+  // ✅ Comprehensive Assessment (single)
+  CA_score: {
     type: DataTypes.DECIMAL(5, 2),
     allowNull: true
   },
-  cat_2: {
+
+  CA_maxScore: {
     type: DataTypes.DECIMAL(5, 2),
     allowNull: true
   },
-  cat_3: {
-    type: DataTypes.DECIMAL(5, 2),
-    allowNull: true
-  },
-  exam: {
-    type: DataTypes.DECIMAL(5, 2),
-    allowNull: true
-  },
-  total_marks: {
-    type: DataTypes.VIRTUAL,
-    get() {
-      const cat1 = parseFloat(this.getDataValue('cat_1')) || 0;
-      const cat2 = parseFloat(this.getDataValue('cat_2')) || 0;
-      const cat3 = parseFloat(this.getDataValue('cat_3')) || 0;
-      const exam = parseFloat(this.getDataValue('exam')) || 0;
-      return parseFloat((cat1 + cat2 + cat3 + exam).toFixed(2));
-    }
-  },
+
   ac_year: {
     type: DataTypes.STRING(100),
     allowNull: true
   },
+
   semester: {
     type: DataTypes.STRING(50),
     allowNull: true
   },
+
   emp_id: {
     type: DataTypes.INTEGER,
     allowNull: true,
@@ -74,15 +81,13 @@ const Marks = sequelize.define('Marks', {
       key: 'emp_id'
     }
   },
-  remark: {
-    type: DataTypes.TEXT,
-    allowNull: true
-  },
+
   date_recorded: {
     type: DataTypes.DATE,
     allowNull: false,
     defaultValue: DataTypes.NOW
   }
+
 }, {
   tableName: 'Marks',
   timestamps: false,

@@ -8,11 +8,7 @@ const marksValidator = {
       }
     }
 
-    if (data.score !== undefined) {
-      if (typeof data.score !== 'number') {
-        errors.push('score must be a number');
-      }
-    }
+   
 
     return {
       isValid: errors.length === 0,
