@@ -20,6 +20,7 @@ const timetableRoutes = require("./routes/timetable/timetableRoutes");
 const timetableEntryRoutes = require("./routes/timetableEntry/timetableEntryRoutes");
 const tradeRoutes = require("./routes/trade/tradeRoutes");
 
+
 // ✅ Correct path for assessment route
 const assessmentRoutes = require("./routes/marks/marksRoutes");
 
@@ -48,6 +49,7 @@ app.use("/api/marks", marksRoutes);
 app.use("/api/department", departmentRoute);
 app.use("/api/special-event", specialEventRoutes);
 app.use("/api/subject", subjectRoutes);
+
 app.use("/api/timetable", timetableRoutes);
 app.use("/api/timetable-entry", timetableEntryRoutes);
 app.use("/api/trade", tradeRoutes);
@@ -69,7 +71,7 @@ app.use((err, req, res, next) => {
 
 /* Start Server */
 db.sequelize
-  .sync({ force: false, alter: false })
+  .sync({  alter: false })
   .then(() => {
     console.log("Database synchronized");
     app.listen(PORT, () => {

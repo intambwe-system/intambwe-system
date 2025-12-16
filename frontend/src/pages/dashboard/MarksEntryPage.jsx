@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Save, Search, AlertCircle, CheckCircle, Loader, Plus, X } from 'lucide-react';
 import classService from '../../services/classService'; // adjust path if needed
 import subjectService from '../../services/subjectService';
@@ -9,15 +10,11 @@ const MarksEntryPage = () => {
   const [classes, setClasses] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [students, setStudents] = useState([]);
-  const [selectedClass, setSelectedClass] = useState('');
-  const [selectedSubject, setSelectedSubject] = useState('');
-  const [academicYear, setAcademicYear] = useState('2024/2025');
-  const [semester, setSemester] = useState('Semester 1');
   const [marksData, setMarksData] = useState({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
-  const [searchTerm, setSearchTerm] = useState('');
+
 
   // Assessment configurations
   const [faColumns, setFaColumns] = useState([]);
@@ -25,6 +22,43 @@ const MarksEntryPage = () => {
   const [showFaModal, setShowFaModal] = useState(false);
   const [showIaModal, setShowIaModal] = useState(false);
   const [newAssessment, setNewAssessment] = useState({ label: '', maxScore: '' });
+  
+  // search params
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [selectedClass, setSelectedClass] = useState(
+   searchParams.get('class') || ''
+ );
+ const [selectedSubject, setSelectedSubject] = useState(
+   searchParams.get('subject') || ''
+ );
+ const [academicYear, setAcademicYear] = useState(
+   searchParams.get('year') || '2024/2025'
+ );
+ const [semester, setSemester] = useState(
+   searchParams.get('semester') || 'Semester 1'
+ );
+ const [searchTerm, setSearchTerm] = useState(
+   searchParams.get('search') || ''
+ );
+
+ useEffect(() => {
+  const params = {};
+
+  if (selectedClass) params.class = selectedClass;
+  if (selectedSubject) params.subject = selectedSubject;
+  if (academicYear) params.year = academicYear;
+  if (semester) params.semester = semester;
+  if (searchTerm) params.search = searchTerm;
+
+  setSearchParams(params, { replace: true });
+}, [
+  selectedClass,
+  selectedSubject,
+  academicYear,
+  semester,
+  searchTerm
+]);
+
 
   // Load classes and subjects
   useEffect(() => {
@@ -494,7 +528,7 @@ const calculateTotal = (studentId) => {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
+      <div className=" mx-auto">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Marks Entry System</h1>
