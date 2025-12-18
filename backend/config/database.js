@@ -2,6 +2,7 @@
 // FILE: config/database.js
 // ===================================
 const { Sequelize } = require("sequelize");
+const fs = require("fs");
 require("dotenv").config();
 
 const sequelize = new Sequelize(
@@ -10,16 +11,17 @@ const sequelize = new Sequelize(
   process.env.DB_PASSWORD,
   {
     host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
+    port: Number(process.env.DB_PORT), // usually NOT 3306 on Aiven
     dialect: "mysql",
     logging: false,
-    pool: {
-      max: 5,
-      min: 0,
-      acquire: 30000,
-      idle: 10000,
+    dialectOptions: {
+      ssl: {
+        ca: fs.readFileSync(__dirname + "/ca.pem"),
+        rejectUnauthorized: true,
+      },
     },
   }
 );
 
 module.exports = sequelize;
+
