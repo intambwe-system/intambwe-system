@@ -377,8 +377,7 @@ const ClassReportsViewer = () => {
   );
 };
 
-import React, { useState } from 'react';
-import logo from './assets/logo.png'; // Adjust path as needed
+
 
 export const TraineeAssessmentReportDisplay = ({ reportData, academicYear, onBack }) => {
   const [viewMode, setViewMode] = useState('all'); // 'all', 'semester1', 'semester2', 'semester3'

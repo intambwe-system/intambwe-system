@@ -14,12 +14,12 @@ const sequelize = new Sequelize(
     port: Number(process.env.DB_PORT), // usually NOT 3306 on Aiven
     dialect: "mysql",
     logging: false,
-    dialectOptions: {
-      ssl: {
-        ca: fs.readFileSync(__dirname + "/ca.pem"),
-        rejectUnauthorized: true,
-      },
-    },
+    // dialectOptions: {
+    //   ssl: {
+    //     ca: fs.readFileSync(__dirname + "/ca.pem"),
+    //     rejectUnauthorized: true,
+    //   },
+    // },
   }
 );
 
