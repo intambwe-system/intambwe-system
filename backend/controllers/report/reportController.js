@@ -240,7 +240,7 @@ include: [
       // Assign positions
       studentRankings.forEach((student, index) => {
         student.position = index + 1;
-        student.percentile = ((studentRankings.length - index) / studentRankings.length * 100).toFixed(2);
+        student.percentile = ((studentRankings.length - index) / studentRankings.length * 100).toFixed(1);
       });
 
       return res.status(200).json({
@@ -286,8 +286,8 @@ function calculateOverallStats(subjects) {
   const overallAverage = subjectCount > 0 ? (totalMarks / subjectCount) : 0;
 
   return {
-    totalMarks: parseFloat(totalMarks.toFixed(2)),
-    overallAverage: parseFloat(overallAverage.toFixed(2)),
+    totalMarks: parseFloat(totalMarks.toFixed(1)),
+    overallAverage: parseFloat(overallAverage.toFixed(1)),
     totalCredits: totalCredits,
     subjectCount: subjectCount
   };
@@ -361,7 +361,7 @@ async function calculateSemesterRankings(classStudents, ac_year, current_std_id,
     const position = allStudentTotals.findIndex(s => s.std_id === parseInt(current_std_id)) + 1;
     const totalStudents = allStudentTotals.length;
     const percentile = totalStudents > 0 ? 
-      parseFloat(((totalStudents - position + 1) / totalStudents * 100).toFixed(2)) : 0;
+      parseFloat(((totalStudents - position + 1) / totalStudents * 100).toFixed(1)) : 0;
 
     semesterResults.push({
       semester: semester,
@@ -448,10 +448,10 @@ function processStudentMarks(marks) {
       : null;
 
     subject.terms[termKey] = {
-      fa: fa !== null ? fa.toFixed(2) : null,
-      la: la !== null ? la.toFixed(2) : null,
-      ca: ca !== null ? ca.toFixed(2) : null,
-      avg: avg !== null ? avg.toFixed(2) : null
+      fa: fa !== null ? fa.toFixed(1) : null,
+      la: la !== null ? la.toFixed(1) : null,
+      ca: ca !== null ? ca.toFixed(1) : null,
+      avg: avg !== null ? avg.toFixed(1) : null
     };
   });
 
@@ -480,8 +480,8 @@ function calculateOverallStats(subjects) {
   const overallAverage = subjectCount > 0 ? (totalMarks / subjectCount) : 0;
 
   return {
-    totalMarks: parseFloat(totalMarks.toFixed(2)),
-    overallAverage: parseFloat(overallAverage.toFixed(2)),
+    totalMarks: parseFloat(totalMarks.toFixed(1)),
+    overallAverage: parseFloat(overallAverage.toFixed(1)),
     totalCredits: totalCredits,
     subjectCount: subjectCount
   };
@@ -506,9 +506,9 @@ function calculateSemesterTotal(subjects, semester) {
   const percentage = maxMarks > 0 ? (totalMarks / maxMarks) * 100 : 0;
 
   return {
-    totalMarks: parseFloat(totalMarks.toFixed(2)),
+    totalMarks: parseFloat(totalMarks.toFixed(1)),
     maxMarks: maxMarks,
-    percentage: parseFloat(percentage.toFixed(2)),
+    percentage: parseFloat(percentage.toFixed(1)),
     subjectCount: subjectCount
   };
 }
@@ -563,7 +563,7 @@ async function calculateClassRanking(classStudents, ac_year, current_std_id, cur
   const position = studentAverages.findIndex(s => s.std_id === parseInt(current_std_id)) + 1;
   const totalStudents = studentAverages.length;
   const percentile = totalStudents > 0 ? 
-    parseFloat(((totalStudents - position + 1) / totalStudents * 100).toFixed(2)) : 0;
+    parseFloat(((totalStudents - position + 1) / totalStudents * 100).toFixed(1)) : 0;
 
   return {
     position: position || null,
