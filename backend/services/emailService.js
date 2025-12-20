@@ -1,30 +1,15 @@
 // services/emailService.js
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const fs = require('fs').promises;
 const path = require('path');
 const handlebars = require('handlebars');
 
 class EmailService {
   constructor() {
-    // Create transporter with your email service credentials
-    this.transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-      port: process.env.EMAIL_PORT || 587,
-      secure: false, // true for 465, false for other ports
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD,
-      },
-    });
-
-    // Verify transporter configuration
-    this.transporter.verify((error, success) => {
-      if (error) {
-        console.error('Email service configuration error:', error);
-      } else {
-        console.log('Email service is ready to send messages');
-      }
-    });
+    // Initialize Resend with API key
+    this.resend = new Resend(process.env.RESEND_API_KEY);
+    
+    console.log('Email service initialized with Resend');
   }
 
   /**
@@ -55,74 +40,110 @@ class EmailService {
   /**
    * Send email using a template
    * @param {object} options - Email options
-   * @param {string} options.to - Recipient email address
+   * @param {string} options.to - Recipient email address (or array of addresses)
    * @param {string} options.subject - Email subject
    * @param {string} options.template - Template name (without extension)
    * @param {object} options.data - Data to inject into template
    * @param {array} options.attachments - Optional attachments
-   * @returns {Promise<object>} - Nodemailer response
+   * @param {string} options.from - Optional custom from address
+   * @returns {Promise<object>} - Resend response
    */
-  async sendEmail({ to, subject, template, data, attachments = [] }) {
+  async sendEmail({ to, subject, template, data, attachments = [], from = null }) {
     try {
       // Load and compile template
       const html = await this.loadTemplate(template, data);
 
-      // Email options
-      const mailOptions = {
-        from: `"${process.env.EMAIL_FROM_NAME || 'Your App'}" <${process.env.EMAIL_USER}>`,
-        to,
+      // Email options for Resend
+      const emailOptions = {
+        from: from || process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev',
+        to: Array.isArray(to) ? to : [to],
         subject,
         html,
-        attachments,
       };
 
-      // Send email
-      const info = await this.transporter.sendMail(mailOptions);
+      // Add attachments if provided
+      if (attachments && attachments.length > 0) {
+        emailOptions.attachments = attachments.map(att => ({
+          filename: att.filename,
+          content: att.content || att.path, // Resend supports both content and path
+        }));
+      }
+
+      // Send email via Resend
+      const response = await this.resend.emails.send(emailOptions);
       
-      console.log('Email sent successfully:', info.messageId);
-      return { success: true, messageId: info.messageId };
+      console.log('Email sent successfully:', response.id);
+      return { success: true, messageId: response.id };
     } catch (error) {
       console.error('Error sending email:', error);
-      throw new Error('Failed to send email');
+      throw new Error(`Failed to send email: ${error.message}`);
     }
   }
 
+  /**
+   * Send bulk emails (batch sending)
+   * @param {array} emails - Array of email objects
+   * @returns {Promise<object>} - Resend batch response
+   */
+  async sendBulkEmails(emails) {
+    try {
+      const emailPromises = emails.map(async (email) => {
+        const html = await this.loadTemplate(email.template, email.data);
+        return {
+          from: email.from || process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev',
+          to: Array.isArray(email.to) ? email.to : [email.to],
+          subject: email.subject,
+          html,
+        };
+      });
 
+      const emailData = await Promise.all(emailPromises);
+      const response = await this.resend.batch.send(emailData);
+      
+      console.log('Bulk emails sent successfully');
+      return { success: true, data: response };
+    } catch (error) {
+      console.error('Error sending bulk emails:', error);
+      throw new Error(`Failed to send bulk emails: ${error.message}`);
+    }
+  }
 }
 
 // Export singleton instance
 module.exports = new EmailService();
 
-
 /*
-// In your controller or route:
+// ============================================
+// INSTALLATION
+// ============================================
+npm install resend handlebars
+
+// ============================================
+// USAGE EXAMPLES
+// ============================================
+
 const emailService = require('./services/emailService');
 
-// Example 1: Send welcome email
-await emailService.sendWelcomeEmail(
-  'employee@example.com',
-  'John Doe'
-);
-
-// Example 2: Send password reset
-await emailService.sendPasswordResetEmail(
-  'employee@example.com',
-  'John Doe',
-  'reset-token-here'
-);
-
-// Example 3: Send custom email with template
+// Example 1: Send simple email with template
 await emailService.sendEmail({
   to: 'employee@example.com',
-  subject: 'Custom Subject',
-  template: 'your-template-name',
+  subject: 'Welcome to Our Platform',
+  template: 'welcome',
   data: {
-    customField1: 'value1',
-    customField2: 'value2'
+    name: 'John Doe',
+    loginUrl: 'https://app.example.com/login'
   }
 });
 
-// Example 4: Send email with attachments
+// Example 2: Send to multiple recipients
+await emailService.sendEmail({
+  to: ['user1@example.com', 'user2@example.com'],
+  subject: 'Team Update',
+  template: 'team-notification',
+  data: { message: 'Important update' }
+});
+
+// Example 3: Send email with attachments
 await emailService.sendEmail({
   to: 'employee@example.com',
   subject: 'Document Attached',
@@ -135,18 +156,59 @@ await emailService.sendEmail({
     }
   ]
 });
-*/
 
+// Example 4: Send bulk emails (batch)
+await emailService.sendBulkEmails([
+  {
+    to: 'user1@example.com',
+    subject: 'Welcome',
+    template: 'welcome',
+    data: { name: 'User 1' }
+  },
+  {
+    to: 'user2@example.com',
+    subject: 'Welcome',
+    template: 'welcome',
+    data: { name: 'User 2' }
+  }
+]);
+
+// Example 5: Custom from address
+await emailService.sendEmail({
+  to: 'employee@example.com',
+  from: 'noreply@yourdomain.com',
+  subject: 'Custom Sender',
+  template: 'notification',
+  data: { message: 'Hello' }
+});
 
 // ============================================
 // ENVIRONMENT VARIABLES (.env)
 // ============================================
 
-/*
-Add these to your .env file:
+RESEND_API_KEY=re_123456789
+RESEND_FROM_EMAIL=noreply@yourdomain.com
 
+// ============================================
+// SETUP INSTRUCTIONS
+// ============================================
 
+1. Sign up at https://resend.com
+2. Get your API key from the dashboard
+3. Verify your domain (for production) or use onboarding@resend.dev (for testing)
+4. Add your API key to .env file
+5. Create your email templates in /templates folder (e.g., welcome.hbs)
 
-Note: For Gmail, you need to use an "App Password" not your regular password.
-Generate one at: https://myaccount.google.com/apppasswords
+// ============================================
+// BENEFITS OF RESEND
+// ============================================
+
+- Simple, modern API
+- Better deliverability
+- Built-in analytics
+- Easy domain verification
+- No complex SMTP configuration
+- Supports React Email components (optional)
+- Built-in rate limiting and retry logic
+
 */

@@ -15,7 +15,9 @@ import {
   X,
   RefreshCw,
   List,
+  School,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom"; 
 import { motion, AnimatePresence } from "framer-motion";
 import { Combobox } from "@headlessui/react";
 import classService from "../../../services/classService";
@@ -26,6 +28,7 @@ import { useEmployeeAuth } from "../../../contexts/EmployeeAuthContext";
 
 const ClassManagementDashboard = () => {
   const [classes, setClasses] = useState([]);
+  const navigate  = useNavigate()
   const [allClasses, setAllClasses] = useState([]);
   const [trades, setTrades] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -187,6 +190,10 @@ const ClassManagementDashboard = () => {
     setShowUpdateModal(true);
   };
 
+  const handelMarks = (cls) => {
+    if(!cls) return 
+    navigate('/employee/dashboard/marks-entry?class_id='+cls.class_id+'&class_name='+cls.class_name)
+  };
   const handleView = (cls) => {
     setSelectedClass(cls);
     setShowViewModal(true);
@@ -431,13 +438,14 @@ const ClassManagementDashboard = () => {
                   {cls.classTeacher?.emp_name || "Not assigned"}
                 </td>
                 <td className="py-3 px-4 text-right space-x-2">
+           
                   <motion.button
                     whileHover={{ scale: 1.1 }}
-                    onClick={() => navigate('/employee/dashboard/marks-entry')}
-                    title="View"
+                    onClick={() => handelMarks(cls)}
+                    title="Marks"
                     className="text-gray-500 hover:text-primary-600 p-2 rounded-full hover:bg-primary-50"
                   >
-                    <File className="w-4 h-4" />
+                    <School className="w-4 h-4" />
                   </motion.button>
                   <motion.button
                     whileHover={{ scale: 1.1 }}
