@@ -1,16 +1,21 @@
 import React, { useState } from 'react';
-import { 
-  Menu, X, Home, Users, Package, ShoppingCart, BarChart3, TrendingDown, 
-  Archive, FolderTree, BookOpen, GraduationCap, Award, Settings, 
-  Building2, LogOut, ChevronDown 
+import {
+  Menu, X, Home, Users, Package, ShoppingCart, BarChart3, TrendingDown,
+  Archive, FolderTree, BookOpen, GraduationCap, Award, Settings,
+  Building2, LogOut, ChevronDown
 } from 'lucide-react';
-import { useEmployeeAuth } from '../../contexts/EmployeeAuthContext';
-import { useNavigate } from 'react-router-dom';
+import {useNavigate}  from 'react-router-dom'
 
-const Sidebar = ({ isOpen, onClose }) => {
+import  {useEmployeeAuth}  from '../../contexts/EmployeeAuthContext'
+
+// Mock context for demo
+
+
+
+const Sidebar = ({ isOpen = true, onClose = () => {} }) => {
   const { employee: user, logout } = useEmployeeAuth();
   const navigate = useNavigate();
-  
+
   const [openSections, setOpenSections] = useState({});
   const [currentRoute, setCurrentRoute] = useState('/employee/dashboard');
 
@@ -26,10 +31,10 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/auth/employee/login', { replace: true });
+    navigate('/auth/employee/login');
   };
 
-  // Define menu based on roles — fully dynamic
+  // Define menu based on roles — fully dynamic with role-based children
   const menuItems = [
     {
       title: 'Dashboard',
@@ -44,9 +49,18 @@ const Sidebar = ({ isOpen, onClose }) => {
       roles: ['admin'],
       color: 'from-purple-500 to-pink-500',
       children: [
-        { title: 'Employees', icon: Users, path: '/employee/dashboard/employees' },
-        { title: 'Departments', icon: Building2, path: '/employee/dashboard/department' },
-       
+        { 
+          title: 'Employees', 
+          icon: Users, 
+          path: '/employee/dashboard/employees',
+          roles: ['admin'] // Only admin can see this
+        },
+        { 
+          title: 'Departments', 
+          icon: Building2, 
+          path: '/employee/dashboard/department',
+          roles: ['admin'] // Only admin can see this
+        },
       ]
     },
     {
@@ -55,11 +69,36 @@ const Sidebar = ({ isOpen, onClose }) => {
       roles: ['stock_manager', 'admin'],
       color: 'from-orange-500 to-red-500',
       children: [
-        { title: 'Products', icon: Package, path: '/employee/dashboard/product' },
-        { title: 'Categories', icon: FolderTree, path: '/employee/dashboard/category' },
-        { title: 'Inventory', icon: Archive, path: '/employee/dashboard/inventory' },
-        { title: 'Stock In', icon: TrendingDown, path: '/employee/dashboard/stockin' },
-        { title: 'Stock Out', icon: ShoppingCart, path: '/employee/dashboard/stockout' }
+        { 
+          title: 'Products', 
+          icon: Package, 
+          path: '/employee/dashboard/product',
+          roles: ['stock_manager', 'admin']
+        },
+        { 
+          title: 'Categories', 
+          icon: FolderTree, 
+          path: '/employee/dashboard/category',
+          roles: ['stock_manager', 'admin']
+        },
+        { 
+          title: 'Inventory', 
+          icon: Archive, 
+          path: '/employee/dashboard/inventory',
+          roles: ['stock_manager', 'admin']
+        },
+        { 
+          title: 'Stock In', 
+          icon: TrendingDown, 
+          path: '/employee/dashboard/stockin',
+          roles: ['stock_manager', 'admin']
+        },
+        { 
+          title: 'Stock Out', 
+          icon: ShoppingCart, 
+          path: '/employee/dashboard/stockout',
+          roles: ['stock_manager', 'admin']
+        }
       ]
     },
     {
@@ -68,8 +107,18 @@ const Sidebar = ({ isOpen, onClose }) => {
       roles: ['stock_manager', 'admin'],
       color: 'from-green-500 to-emerald-500',
       children: [
-        { title: 'Sales Report', icon: BarChart3, path: '/employee/dashboard/sales-report' },
-        { title: 'Sales Return', icon: TrendingDown, path: '/employee/dashboard/sales-return' }
+        { 
+          title: 'Sales Report', 
+          icon: BarChart3, 
+          path: '/employee/dashboard/sales-report',
+          roles: ['stock_manager', 'admin']
+        },
+        { 
+          title: 'Sales Return', 
+          icon: TrendingDown, 
+          path: '/employee/dashboard/sales-return',
+          roles: ['admin'] // Only admin can see returns
+        }
       ]
     },
     {
@@ -78,24 +127,73 @@ const Sidebar = ({ isOpen, onClose }) => {
       roles: ['teacher', 'admin'],
       color: 'from-indigo-500 to-blue-500',
       children: [
-        { title: 'Classes', icon: GraduationCap, path: '/employee/dashboard/classes' },
-         { title: 'Trades', icon: Building2, path: '/employee/dashboard/trades' },
-        { title: 'Students', icon: Users, path: '/employee/dashboard/students' },
-        { title: 'Grades', icon: Award, path: '/employee/dashboard/grades' },
-        { title: 'Subjects', icon: BookOpen, path: '/employee/dashboard/subjects' },
-        { title: 'My Subjects', icon: BookOpen, path: '/employee/dashboard/my-subjects' },
-        // Admin-only assign subjects entry (UI; actual access is enforced by route guard)
-        { title: 'Assign Subjects', icon: BookOpen, path: '/employee/dashboard/assign-class-subjects' },
+        { 
+          title: 'Classes', 
+          icon: GraduationCap, 
+          path: '/employee/dashboard/classes',
+          roles: ['teacher', 'admin']
+        },
+        { 
+          title: 'Trades', 
+          icon: Building2, 
+          path: '/employee/dashboard/trades',
+          roles: [ 'admin']
+        },
+        { 
+          title: 'Students', 
+          icon: Users, 
+          path: '/employee/dashboard/students',
+          roles: ['teacher', 'admin']
+        },
+        { 
+          title: 'Reports', 
+          icon: Award, 
+          path: '/employee/dashboard/report',
+          roles: ['teacher', 'admin']
+        },
+        { 
+          title: 'Subjects', 
+          icon: BookOpen, 
+          path: '/employee/dashboard/subjects',
+          roles: [ 'admin']
+        },
+        { 
+          title: 'My Subjects', 
+          icon: BookOpen, 
+          path: '/employee/dashboard/my-subjects',
+          roles: ['teacher']
+        },
+        { 
+          title: 'Assign Subjects', 
+          icon: BookOpen, 
+          path: '/employee/dashboard/assign-class-subjects',
+          roles: ['admin'] // Only admin can assign subjects
+        },
       ]
     }
   ];
 
-  // Filter menu items based on actual user role
-  const filteredMenuItems = menuItems.filter(item => 
-    item.roles?.includes(user?.emp_role)
-  );
+  // Filter menu items and their children based on user role
+  const filteredMenuItems = menuItems
+    .filter(item => item.roles?.includes(user?.emp_role))
+    .map(item => {
+      if (item.children) {
+        // Filter children based on roles
+        const filteredChildren = item.children.filter(child => 
+          !child.roles || child.roles.includes(user?.emp_role)
+        );
+        
+        // Only include parent if it has visible children
+        if (filteredChildren.length > 0) {
+          return { ...item, children: filteredChildren };
+        }
+        return null;
+      }
+      return item;
+    })
+    .filter(Boolean); // Remove null items
 
-  if (!user) return null; // Safety
+  if (!user) return null;
 
   return (
     <>
@@ -123,8 +221,8 @@ const Sidebar = ({ isOpen, onClose }) => {
               <p className="text-xs text-slate-400">Management System</p>
             </div>
           </div>
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className="lg:hidden p-2 rounded-lg hover:bg-slate-700/50 transition-all"
           >
             <X className="w-5 h-5 text-slate-400 hover:text-white" />

@@ -3,36 +3,36 @@ import { Navigate, useLocation } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useEmployeeAuth } from "../../contexts/EmployeeAuthContext";
 
-// Route to role mapping - maps routes to allowed roles
-const routeRoleMapping = {
-  // Admin only routes
-  "/employee/dashboard/users": ["admin"],
-  "/employee/dashboard/employees": ["admin"],
-  "/employee/dashboard/department": ["admin"],
-  "/employee/dashboard/settings": ["admin"],
-  "/employee/dashboard/assign-class-subjects": ["admin"],
+  // Route to role mapping - maps routes to allowed roles
+  const routeRoleMapping = {
+    // Admin only routes
+    "/employee/dashboard/users": ["admin"],
+    "/employee/dashboard/employees": ["admin"],
+    "/employee/dashboard/department": ["admin"],
+    "/employee/dashboard/settings": ["admin"],
+    "/employee/dashboard/assign-class-subjects": ["admin"],
 
-  // Stock Manager routes
-  "/employee/dashboard/stockout": ["stock_manager", "admin"],
-  "/employee/dashboard/sales-report": ["stock_manager", "admin"],
-  "/employee/dashboard/sales-return": ["stock_manager", "admin"],
-  "/employee/dashboard/stockin": ["stock_manager", "admin"],
-  "/employee/dashboard/category": ["stock_manager", "admin"],
-  "/employee/dashboard/product": ["stock_manager", "admin"],
-  "/employee/dashboard/inventory": ["stock_manager", "admin"],
-  // Teacher routes
-  "/employee/dashboard/students": ["teacher", "admin"],
-  "/employee/dashboard/classes": ["teacher", "admin"],
-  "/employee/dashboard/grades": ["teacher", "admin"],
-  "/employee/dashboard/trades": ["teacher", "admin"],
-  "/employee/dashboard/subjects": ["teacher", "admin"],
-  "/employee/dashboard/my-subjects": ["teacher", "admin"],
-  "/employee/dashboard/marks-entry": ["teacher", "admin"],
+    // Stock Manager routes
+    "/employee/dashboard/stockout": ["stock_manager", "admin"],
+    "/employee/dashboard/sales-report": ["stock_manager", "admin"],
+    "/employee/dashboard/sales-return": ["stock_manager", "admin"],
+    "/employee/dashboard/stockin": ["stock_manager", "admin"],
+    "/employee/dashboard/category": ["stock_manager", "admin"],
+    "/employee/dashboard/product": ["stock_manager", "admin"],
+    "/employee/dashboard/inventory": ["stock_manager", "admin"],
+    // Teacher routes
+    "/employee/dashboard/students": ["teacher", "admin"],
+    "/employee/dashboard/classes": ["teacher", "admin"],
+    "/employee/dashboard/grades": ["teacher", "admin"],
+    "/employee/dashboard/trades": ["teacher", "admin"],
+    "/employee/dashboard/subjects": ["teacher", "admin"],
+    "/employee/dashboard/my-subjects": ["teacher", "admin"],
+    "/employee/dashboard/marks-entry": ["teacher", "admin"],
 
-  // Shared routes (all authenticated employees)
-  "/employee/dashboard": ["teacher", "admin", "stock_manager"],
-  "/employee/dashboard/profile": ["teacher", "admin", "stock_manager"],
-};
+    // Shared routes (all authenticated employees)
+    "/employee/dashboard": ["teacher", "admin", "stock_manager"],
+    "/employee/dashboard/profile": ["teacher", "admin", "stock_manager"],
+  };
 
 export const hasAccess = (route, userRole) => {
   for (const baseRoute in routeRoleMapping) {

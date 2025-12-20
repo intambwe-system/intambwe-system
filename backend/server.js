@@ -19,6 +19,8 @@ const subjectRoutes = require("./routes/subject/subjectRoutes");
 const timetableRoutes = require("./routes/timetable/timetableRoutes");
 const timetableEntryRoutes = require("./routes/timetableEntry/timetableEntryRoutes");
 const tradeRoutes = require("./routes/trade/tradeRoutes");
+const reportRoutes = require("./routes/report/reportRoute");
+
 
 // ✅ Correct path for assessment route
 const assessmentRoutes = require("./routes/marks/marksRoutes");
@@ -29,7 +31,7 @@ const PORT = process.env.PORT || 5000;
 /* CORS Configuration */
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: ["http://localhost:5173", process.env.FRONTEND_URL],
     credentials: true,
   })
 );
@@ -48,9 +50,11 @@ app.use("/api/marks", marksRoutes);
 app.use("/api/department", departmentRoute);
 app.use("/api/special-event", specialEventRoutes);
 app.use("/api/subject", subjectRoutes);
+
 app.use("/api/timetable", timetableRoutes);
 app.use("/api/timetable-entry", timetableEntryRoutes);
 app.use("/api/trade", tradeRoutes);
+app.use("/api/report", reportRoutes);
 app.use("/api/assessment", assessmentRoutes);
 
 /* Health Check Route */
@@ -69,7 +73,11 @@ app.use((err, req, res, next) => {
 
 /* Start Server */
 db.sequelize
+<<<<<<< HEAD
   .sync({  alter: true })
+=======
+  .sync({  alter: false })
+>>>>>>> 42a7581a746082a2e8b99f94776ffa08ed0c2fc6
   .then(() => {
     console.log("Database synchronized");
     app.listen(PORT, () => {

@@ -25,6 +25,9 @@ import ClassSelectionPage from "../pages/dashboard/ClassSelectionPage";
 import StudentListPage from "../pages/dashboard/StudentListPage";
 import AddMarksPage from "../pages/dashboard/AddMarksPage";
 import MarksEntryPage from "../pages/dashboard/MarksEntryPage";
+import AttendanceDashboard from "../pages/dashboard/AttendanceDashboard";
+import TraineeAssessmentReport from "../pages/dashboard/ReportDisplay";
+import ClassBulkReportsViewer from "../pages/dashboard/ClassBulkReportsViewer";
 
 const LoadingSpinner = () => (
 
@@ -75,12 +78,15 @@ const router = createBrowserRouter([
           { path: "classes", element: <ClassManagementDashboard /> },
           { path: "subjects", element: <SubjectPage /> },
           { path: "assign-class-subjects", element: <AssignClassSubjectsPage /> },
-          { path: "attendance", element: <AttendanceMarkingPage /> },
+          { path: "attendance", element: <AttendanceDashboard /> },
+          { path: "attendance/mark", element: <AttendanceMarkingPage /> },
           { path: "my-subjects", element: <MySubjectsPage /> },
              { path:"class", element: <ClassSelectionPage /> },
     { path: "class/:classId", element: <StudentListPage /> },
     { path: "class/:classId/student/:stdId/subject/:sbjId", element: <AddMarksPage /> },
     { path: "marks-entry", element: <MarksEntryPage /> },
+    { path: "report", element: <TraineeAssessmentReport /> },
+    { path: "class-report/:classId", element: <ClassBulkReportsViewer /> },
  
         ],
       },

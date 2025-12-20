@@ -52,17 +52,70 @@ const marksController = {
         }
       }
 
+      // Validate FA array if provided
+      if (data.FA !== undefined) {
+        if (!Array.isArray(data.FA)) {
+          return res.status(400).json({
+            success: false,
+            message: 'FA must be an array'
+          });
+        }
+        // Validate each FA entry
+        for (const entry of data.FA) {
+          if (!entry.score || !entry.maxScore || !entry.label) {
+            return res.status(400).json({
+              success: false,
+              message: 'Each FA entry must have score, maxScore, and label'
+            });
+          }
+        }
+      }
+
+      // Validate IA array if provided
+      if (data.IA !== undefined) {
+        if (!Array.isArray(data.IA)) {
+          return res.status(400).json({
+            success: false,
+            message: 'IA must be an array'
+          });
+        }
+        // Validate each IA entry
+        for (const entry of data.IA) {
+          if (!entry.score || !entry.maxScore || !entry.label) {
+            return res.status(400).json({
+              success: false,
+              message: 'Each IA entry must have score, maxScore, and label'
+            });
+          }
+        }
+      }
+
+      // Prepare data for creation
+      const marksData = {
+        std_id: data.std_id,
+        sbj_id: data.sbj_id,
+        class_id: data.class_id || null,
+        emp_id: data.emp_id || null,
+        ac_year: data.ac_year || null,
+        semester: data.semester || null,
+        FA: data.FA || null,
+        IA: data.IA || null,
+        CA_score: data.CA_score || null,
+        CA_maxScore: data.CA_maxScore || null
+      };
+
+      // Check for existing record
       const existing = await Marks.findOne({
         where: {
-          std_id: data.std_id,
-          sbj_id: data.sbj_id,
-          semester: data.semester || null,
-          ac_year: data.ac_year || null
+          std_id: marksData.std_id,
+          sbj_id: marksData.sbj_id,
+          semester: marksData.semester,
+          ac_year: marksData.ac_year
         }
       });
 
       if (existing) {
-        await existing.update(data);
+        await existing.update(marksData);
         return res.status(200).json({
           success: true,
           message: 'Marks updated successfully',
@@ -70,7 +123,7 @@ const marksController = {
         });
       }
 
-      const marks = await Marks.create(data);
+      const marks = await Marks.create(marksData);
 
       return res.status(201).json({
         success: true,
@@ -211,6 +264,42 @@ const marksController = {
         });
       }
 
+      // Validate FA array if provided
+      if (updateData.FA !== undefined) {
+        if (!Array.isArray(updateData.FA)) {
+          return res.status(400).json({
+            success: false,
+            message: 'FA must be an array'
+          });
+        }
+        for (const entry of updateData.FA) {
+          if (!entry.score || !entry.maxScore || !entry.label) {
+            return res.status(400).json({
+              success: false,
+              message: 'Each FA entry must have score, maxScore, and label'
+            });
+          }
+        }
+      }
+
+      // Validate IA array if provided
+      if (updateData.IA !== undefined) {
+        if (!Array.isArray(updateData.IA)) {
+          return res.status(400).json({
+            success: false,
+            message: 'IA must be an array'
+          });
+        }
+        for (const entry of updateData.IA) {
+          if (!entry.score || !entry.maxScore || !entry.label) {
+            return res.status(400).json({
+              success: false,
+              message: 'Each IA entry must have score, maxScore, and label'
+            });
+          }
+        }
+      }
+
       await marks.update(updateData);
 
       const updated = await Marks.findByPk(id, {
@@ -302,6 +391,181 @@ const marksController = {
       });
     } catch (error) {
       console.error('Error fetching transcript:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: error.message
+      });
+    }
+  },
+
+  // Add FA assessment to existing record
+  async addFormativeAssessment(req, res) {
+    try {
+      const { id } = req.params;
+      const { score, maxScore, label } = req.body;
+
+      if (!id || isNaN(id)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid marks ID'
+        });
+      }
+
+      if (score === undefined || maxScore === undefined || !label) {
+        return res.status(400).json({
+          success: false,
+          message: 'Score, maxScore, and label are required'
+        });
+      }
+
+      const marks = await Marks.findByPk(id);
+      if (!marks) {
+        return res.status(404).json({
+          success: false,
+          message: 'Marks record not found'
+        });
+      }
+
+      // Get current FA array or initialize empty array
+      const currentFA = marks.FA ? [...marks.FA] : [];
+      currentFA.push({ score, maxScore, label });
+
+      // Update with new array
+      await marks.update({ FA: currentFA });
+
+      // Fetch updated record
+      const updated = await Marks.findByPk(id, {
+        include: [
+          { model: Student },
+          { model: Subject },
+          { model: Class },
+          { model: Employee, as: 'gradedBy' }
+        ]
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Formative assessment added successfully',
+        data: updated
+      });
+    } catch (error) {
+      console.error('Error adding FA:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: error.message
+      });
+    }
+  },
+
+  // Add IA assessment to existing record
+  async addIntegratedAssessment(req, res) {
+    try {
+      const { id } = req.params;
+      const { score, maxScore, label } = req.body;
+
+      if (!id || isNaN(id)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid marks ID'
+        });
+      }
+
+      if (score === undefined || maxScore === undefined || !label) {
+        return res.status(400).json({
+          success: false,
+          message: 'Score, maxScore, and label are required'
+        });
+      }
+
+      const marks = await Marks.findByPk(id);
+      if (!marks) {
+        return res.status(404).json({
+          success: false,
+          message: 'Marks record not found'
+        });
+      }
+
+      // Get current IA array or initialize empty array
+      const currentIA = marks.IA ? [...marks.IA] : [];
+      currentIA.push({ score, maxScore, label });
+
+      // Update with new array
+      await marks.update({ IA: currentIA });
+
+      // Fetch updated record
+      const updated = await Marks.findByPk(id, {
+        include: [
+          { model: Student },
+          { model: Subject },
+          { model: Class },
+          { model: Employee, as: 'gradedBy' }
+        ]
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Integrated assessment added successfully',
+        data: updated
+      });
+    } catch (error) {
+      console.error('Error adding IA:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: error.message
+      });
+    }
+  },
+
+  // Update CA
+  async updateComprehensiveAssessment(req, res) {
+    try {
+      const { id } = req.params;
+      const { CA_score, CA_maxScore } = req.body;
+
+      if (!id || isNaN(id)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid marks ID'
+        });
+      }
+
+      if (CA_score === undefined || CA_maxScore === undefined) {
+        return res.status(400).json({
+          success: false,
+          message: 'CA_score and CA_maxScore are required'
+        });
+      }
+
+      const marks = await Marks.findByPk(id);
+      if (!marks) {
+        return res.status(404).json({
+          success: false,
+          message: 'Marks record not found'
+        });
+      }
+
+      await marks.update({ CA_score, CA_maxScore });
+
+      // Fetch updated record
+      const updated = await Marks.findByPk(id, {
+        include: [
+          { model: Student },
+          { model: Subject },
+          { model: Class },
+          { model: Employee, as: 'gradedBy' }
+        ]
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Comprehensive assessment updated successfully',
+        data: updated
+      });
+    } catch (error) {
+      console.error('Error updating CA:', error);
       return res.status(500).json({
         success: false,
         message: 'Internal server error',

@@ -15,6 +15,10 @@ const Class = sequelize.define(
       type: DataTypes.STRING(50),
       allowNull: false,
     },
+    RQF: {
+      type: DataTypes.STRING(50),
+      allowNull: true,
+    },
     dpt_id: {
       type: DataTypes.INTEGER,
       allowNull: true,
@@ -23,6 +27,7 @@ const Class = sequelize.define(
         key: "dpt_id",
       },
     },
+
     emp_id: {
       type: DataTypes.INTEGER,
       allowNull: true,

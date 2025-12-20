@@ -29,7 +29,7 @@ const Modal = ({ show, title, onClose, children }) => (
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 bg-gray-600 bg-opacity-75 flex items-center justify-center p-4"
+        className="fixed inset-0 z-50 bg-gray-600/75 flex items-center justify-center p-4"
         onClick={onClose}
       >
         <motion.div
@@ -60,6 +60,7 @@ const Modal = ({ show, title, onClose, children }) => (
 const initialFormData = {
   sbj_name: '',
   sbj_code: '',
+  category_type: 'GENERAL', // Default category
 };
 
 export default function SubjectPage() {
@@ -129,7 +130,6 @@ export default function SubjectPage() {
       const data = res.data || res;
       setTrades(Array.isArray(data) ? data : []);
     } catch (err) {
-      // We won't block subject UI if trades fail; just leave list empty.
       console.error('Failed to fetch trades:', err);
     }
   };
@@ -144,9 +144,9 @@ export default function SubjectPage() {
     }
 
     const payload = {
-      sbj_name: formData.sbj_name,
-      sbj_code: formData.sbj_code,
-      // trade_ids is for future backend support of many-to-many Subject-Trade relation
+      sbj_name: formData.sbj_name.trim(),
+      sbj_code: formData.sbj_code.trim(),
+      category_type: formData.category_type,
       trade_ids: selectedTradeIds,
     };
 
@@ -230,8 +230,8 @@ export default function SubjectPage() {
     setFormData({
       sbj_name: subject.sbj_name || '',
       sbj_code: subject.sbj_code || '',
+      category_type: subject.category_type || 'GENERAL',
     });
-    // For now we don't receive trade_ids from backend; leave selectedTradeIds empty.
     setSelectedTradeIds([]);
     setFormError('');
     setShowUpdateModal(true);
@@ -240,6 +240,22 @@ export default function SubjectPage() {
   const handleViewDetails = (subject) => {
     setDetailsSubject(subject);
     setShowDetailsModal(true);
+  };
+
+  const getCategoryBadge = (type) => {
+    const styles = {
+      CORE: 'bg-purple-100 text-purple-800 border-purple-300',
+      COMPLEMENTARY: 'bg-amber-100 text-amber-800 border-amber-300',
+      GENERAL: 'bg-blue-100 text-blue-800 border-blue-300',
+    };
+
+    const displayText = type.charAt(0) + type.slice(1).toLowerCase();
+
+    return (
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${styles[type] || styles.GENERAL}`}>
+        {displayText}
+      </span>
+    );
   };
 
   const RenderToast = () => {
@@ -319,6 +335,27 @@ export default function SubjectPage() {
             required
           />
         </div>
+      </div>
+
+      {/* Category Type */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700">
+          Category Type <span className="text-red-500">*</span>
+        </label>
+        <select
+          name="category_type"
+          value={formData.category_type}
+          onChange={handleInputChange}
+          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500"
+          required
+        >
+          <option value="GENERAL">General</option>
+          <option value="COMPLEMENTARY">Complementary</option>
+          <option value="CORE">Core</option>
+        </select>
+        <p className="text-xs text-gray-500 mt-1">
+          Core = main vocational subject • Complementary = supporting vocational • General = common academic
+        </p>
       </div>
 
       {/* Trades multi-select */}
@@ -510,7 +547,7 @@ export default function SubjectPage() {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      {['ID', 'Name', 'Code', 'Trades', 'Actions'].map((header) => (
+                      {['ID', 'Name', 'Code', 'Category', 'Trades', 'Actions'].map((header) => (
                         <th
                           key={header}
                           className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -534,6 +571,9 @@ export default function SubjectPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{subject.sbj_name}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{subject.sbj_code}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          {getCategoryBadge(subject.category_type)}
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                           {Array.isArray(subject.trades) ? subject.trades.length : 0}
                         </td>
@@ -623,7 +663,7 @@ export default function SubjectPage() {
         {renderForm(true)}
       </Modal>
 
-      {/* Details Modal (admin) */}
+      {/* Details Modal */}
       <Modal
         show={isAdmin && showDetailsModal && !!detailsSubject}
         title={detailsSubject ? `Subject Details: ${detailsSubject.sbj_name}` : 'Subject Details'}
@@ -639,6 +679,13 @@ export default function SubjectPage() {
               <p><span className="font-medium">ID:</span> {String(detailsSubject.sbj_id).padStart(4, '0')}</p>
               <p><span className="font-medium">Name:</span> {detailsSubject.sbj_name}</p>
               <p><span className="font-medium">Code:</span> {detailsSubject.sbj_code}</p>
+            </div>
+
+            <div>
+              <h4 className="font-semibold text-slate-900 mb-1">Category</h4>
+              <div className="mt-1">
+                {getCategoryBadge(detailsSubject.category_type)}
+              </div>
             </div>
 
             <div>
@@ -660,7 +707,7 @@ export default function SubjectPage() {
             </div>
 
             <div className="text-xs text-gray-400 border-t pt-2">
-              Full Detailed info on this subject can be found in the subject management section.
+              Full detailed info on this subject can be found in the subject management section.
             </div>
           </div>
         )}
