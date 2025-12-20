@@ -52,6 +52,7 @@ const ClassManagementDashboard = () => {
   const {employee} = useEmployeeAuth()
   const [formData, setFormData] = useState({
     class_name: "",
+    RQF :"",
     trade_id: "",
     dpt_id: "",
     emp_id: "",
@@ -217,6 +218,7 @@ const ClassManagementDashboard = () => {
         class_name: formData.class_name.trim(),
         trade_id: selectedTrade.trade_id,
         dpt_id: selectedDepartment?.dpt_id || null,
+        RQF:formData.RQF || null ,
         emp_id: selectedTeacher?.emp_id || null,
       };
 
@@ -243,6 +245,7 @@ const ClassManagementDashboard = () => {
       const payload = {
         class_name: formData.class_name.trim(),
         trade_id: selectedTrade.trade_id,
+        RQF:formData.RQF || null ,
         dpt_id: selectedDepartment?.dpt_id || null,
         emp_id: selectedTeacher?.emp_id || null,
       };
@@ -401,6 +404,9 @@ const ClassManagementDashboard = () => {
                 </div>
               </th>
               <th className="text-left py-3 px-4 text-gray-600 font-semibold hidden md:table-cell">
+                RQF
+              </th>
+              <th className="text-left py-3 px-4 text-gray-600 font-semibold hidden md:table-cell">
                 Department
               </th>
               <th className="text-left py-3 px-4 text-gray-600 font-semibold">
@@ -425,6 +431,9 @@ const ClassManagementDashboard = () => {
                 <td className="py-3 px-4 text-gray-900">#{cls.class_id}</td>
                 <td className="py-3 px-4 font-medium text-gray-900">
                   {cls.class_name}
+                </td>
+                <td className="py-3 px-4 font-medium text-gray-900">
+                  {cls.RQF}
                 </td>
                 <td className="py-3 px-4 text-gray-600 hidden md:table-cell">
                   {cls.Department?.dpt_name || "—"}
@@ -792,6 +801,21 @@ const ClassManagementDashboard = () => {
                       className="w-full px-4 py-2 text-sm border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-primary-500"
                     />
                   </div>
+                          <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      RQF LEVEL *
+                    </label>
+                    <input
+                      type="number"
+                      name="RQF"
+                      value={formData.RQF}
+                      min={2}
+                      max={5}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-4 py-2 text-sm border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    />
+                  </div>
                   <SelectCombobox
                     label="Trade *"
                     value={selectedTrade}
@@ -870,6 +894,22 @@ const ClassManagementDashboard = () => {
                       type="text"
                       name="class_name"
                       value={formData.class_name}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-4 py-2 text-sm border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      RQF LEVEL *
+                    </label>
+                    <input
+                      type="number"
+                      name="RQF"
+                      value={formData.RQF}
+                      min={2}
+                      max={5}
                       onChange={handleInputChange}
                       required
                       className="w-full px-4 py-2 text-sm border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-primary-500"

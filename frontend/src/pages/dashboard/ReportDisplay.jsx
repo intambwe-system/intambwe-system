@@ -690,7 +690,7 @@ export const TraineeAssessmentReportDisplay = ({ reportData, academicYear, onBac
               <span className="font-bold">Trade:</span> {student.Class?.Trade?.trade_name || 'SOFTWARE DEVELOPMENT'}
             </div>
             <div className="border-r border-black p-1.5 col-span-2">
-              <span className="font-bold">RQF Level:</span> LEVEL 3
+              <span className="font-bold">RQF Level:</span> LEVEL {student.Class?.RQF || 'III'}
             </div>
             <div className="p-1.5"></div>
           </div>
