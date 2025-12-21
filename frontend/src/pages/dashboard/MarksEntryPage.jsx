@@ -32,7 +32,7 @@ const MarksEntryPage = () => {
    searchParams.get('subject') || ''
  );
  const [academicYear, setAcademicYear] = useState(
-   searchParams.get('year') || '2024/2025'
+   searchParams.get('year') || '2025/26'
  );
  const [semester, setSemester] = useState(
    searchParams.get('semester') || 'Semester 1'
@@ -586,7 +586,7 @@ const calculateTotal = (studentId) => {
                 value={academicYear}
                 onChange={(e) => setAcademicYear(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                placeholder="2024/2025"
+                placeholder="2025/26"
               />
             </div>
             <div>

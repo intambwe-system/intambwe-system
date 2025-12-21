@@ -13,7 +13,7 @@ const ClassBulkReportsViewer = () => {
   const [loading, setLoading] = useState(false);
   const [loadingReports, setLoadingReports] = useState(false);
   const [error, setError] = useState(null);
-  const [academicYear, setAcademicYear] = useState('2024/2025');
+  const [academicYear, setAcademicYear] = useState('2025/26');
 
   useEffect(() => {
     loadClassData();
@@ -68,6 +68,7 @@ const ClassBulkReportsViewer = () => {
             student: data.student,
             subjects: data.subjects,
             semesterResults: data.semesterResults || [],
+            disciplineMarks: data.disciplineMarks || [],
             overallStatistics: data.overallStatistics,
             overallRanking: data.overallRanking,
             categories: data.categories
@@ -184,7 +185,7 @@ const ClassBulkReportsViewer = () => {
                   value={academicYear}
                   onChange={(e) => setAcademicYear(e.target.value)}
                   className="border border-gray-300 rounded px-3 py-2"
-                  placeholder="2024/2025"
+                  placeholder="2025/26"
                 />
               </div>
 

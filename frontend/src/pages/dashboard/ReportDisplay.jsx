@@ -14,7 +14,7 @@ const ClassReportsViewer = () => {
   const [loading, setLoading] = useState(false);
   const [loadingReports, setLoadingReports] = useState({});
   const [error, setError] = useState(null);
-  const [academicYear, setAcademicYear] = useState('2024/2025');
+  const [academicYear, setAcademicYear] = useState('2025/26');
   const [selectedReport, setSelectedReport] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
@@ -132,6 +132,7 @@ const ClassReportsViewer = () => {
               [studentId]: {
                 student: data.student,
                 subjects: data.subjects,
+                disciplineMarks: data.disciplineMarks || [],
                 semesterResults: data.semesterResults || [],
                 overallStatistics: data.overallStatistics,
                 overallRanking: data.overallRanking,
@@ -230,7 +231,7 @@ const ClassReportsViewer = () => {
                 value={academicYear}
                 onChange={(e) => setAcademicYear(e.target.value)}
                 className="border border-gray-300 rounded px-3 py-1"
-                placeholder="2024/2025"
+                placeholder="2025/26"
               />
             </div>
           </div>
@@ -457,6 +458,29 @@ export const TraineeAssessmentReportDisplay = ({ reportData, academicYear, onBac
       }
     }
   };
+
+  /**
+ * Get discipline score by semester
+ * @param {Array} records - Array of discipline marks
+ * @param {String} semester - Semester name to search for
+ * @returns {Object|null} - Object with score info or null if not found
+ */
+function getDisciplineScoreBySemester( semester) {
+  const records = reportData?.disciplineMarks || [];
+  if (!Array.isArray(records) || !semester) return null;
+
+  const record = records.find(r => r.semester === semester);
+
+  if (!record) return null;
+
+  return {
+    score: record.score,
+    maxScore: record.maxScore,
+    percentage: record.percentage,
+    dateRecorded: record.dateRecorded,
+    recordedBy: record.recordedBy
+  };
+}
 
   const getAllSubjects = () => {
     const { coreSpecific, coreGeneral, complementary } = getCategories();
@@ -733,10 +757,10 @@ export const TraineeAssessmentReportDisplay = ({ reportData, academicYear, onBac
               <td className="border border-black p-1 text-center">100</td>
 
               {semestersToDisplay.map((semester, idx) => {
-                const result = getSemesterResult(semester);
+                const result = getDisciplineScoreBySemester(semester);
                 return (
                   <td key={idx} colSpan="4" className="border border-black p-1 text-center">
-                    {result ? `${result.percentage}%` : '-'}
+                    {result ? `${result.score}` : '-'}
                   </td>
                 );
               })}
@@ -969,6 +993,28 @@ export const TraineeAssessmentReportDisplay = ({ reportData, academicYear, onBac
               </>
             )}
 
+            
+            <tr className="bg-gray-100 font-bold">
+              <td colSpan="4" className="border border-black p-1 text-left">Percentage %</td>
+              <td className="border border-black p-1 text-center">100</td>
+
+              {semestersToDisplay.map((semester, idx) => {
+                const result = getSemesterResult(semester);
+                return (
+                  <td key={idx} colSpan="4" className="border border-black p-1 text-center">
+                    {result ? `${result.percentage}%` : '-'}
+                  </td>
+                );
+              })}
+
+              {showAnnualAverage && (
+                <td colSpan="3" className="border border-black p-1 text-center">
+                  {allSemestersComplete ? `${overallStats.overallAverage}%` : '-'}
+                </td>
+              )}
+            </tr>
+
+
             {/* Class Trainer's Comments & Signature */}
             <tr className="bg-white font-bold">
               <td colSpan="4" className="border border-black p-1 text-left">Class Trainer's Comments & Signature</td>
@@ -1004,7 +1050,7 @@ export const TraineeAssessmentReportDisplay = ({ reportData, academicYear, onBac
                 <th className="border border-black p-1 font-bold">Promoted after re-assessment</th>
                 <th className="border border-black p-1 font-bold">Advised to Repeat</th>
                 <th className="border border-black p-1 font-bold">Dismissed</th>
-                <th className="border border-black p-1 font-bold">School Manager<br />MURANGWA Annable<br />SIGNATURE<br />____/____/{new Date().getFullYear()}</th>
+                <th className="border border-black p-1 font-bold">School Manager<br />MURANGWA Aimable<br />SIGNATURE<br />____/____/{new Date().getFullYear()}</th>
               </tr>
             </thead>
             <tbody>
@@ -1030,6 +1076,7 @@ export const TraineeAssessmentReportDisplay = ({ reportData, academicYear, onBac
             </tbody>
           </table>
         </div>
+
 
         {/* Footer */}
         <div className="bg-gray-100 p-1 text-right text-[8px] border-t border-black">

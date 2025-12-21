@@ -567,7 +567,7 @@ export default function SubjectPage() {
                         className="hover:bg-indigo-50/50 transition-colors"
                       >
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {startIndex + index + 1}
+                          {startIndex + index + 1} {subject.sbj_id}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{subject.sbj_name}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{subject.sbj_code}</td>

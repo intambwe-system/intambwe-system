@@ -121,7 +121,7 @@ const studentController = {
         dpt_id, 
         gender, 
         page = 1, 
-        limit = 40 
+        limit = 1000 
       } = req.query;
 
       // Build where clause

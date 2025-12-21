@@ -13,3 +13,29 @@
   --color-primary-900: #1e3a8a;
   --color-primary-950: #172554;
 }
+
+
+@media print {
+    body * {
+      visibility: hidden;
+    }
+    .print-area, .print-area * {
+      visibility: visible;
+    }
+    .print-area {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+    }
+    .no-print {
+      display: none !important;
+    }
+    .page-break {
+      page-break-after: always;
+      page-break-inside: avoid;
+    }
+    .report-wrapper {
+      page-break-inside: avoid;
+    }
+  }

@@ -16,6 +16,7 @@ import {
   RefreshCw,
   List,
   School,
+  ShieldAlert,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom"; 
 import { motion, AnimatePresence } from "framer-motion";
@@ -193,7 +194,11 @@ const ClassManagementDashboard = () => {
 
   const handelMarks = (cls) => {
     if(!cls) return 
-    navigate('/employee/dashboard/marks-entry?class_id='+cls.class_id+'&class_name='+cls.class_name)
+    navigate('/employee/dashboard/marks-entry?class='+cls.class_id)
+  };
+  const handleDispline = (cls) => {
+    if(!cls) return 
+    navigate('/employee/dashboard/discipline-entry?class='+cls.class_id)
   };
   const handleView = (cls) => {
     setSelectedClass(cls);
@@ -454,7 +459,15 @@ const ClassManagementDashboard = () => {
                     title="Marks"
                     className="text-gray-500 hover:text-primary-600 p-2 rounded-full hover:bg-primary-50"
                   >
-                    <School className="w-4 h-4" />
+                    <BookOpen className="w-4 h-4" />
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    onClick={() => handleDispline(cls)}
+                    title="Discipline"
+                    className="text-gray-500 hover:text-primary-600 p-2 rounded-full hover:bg-primary-50"
+                  >
+                    <ShieldAlert className="w-4 h-4" />
                   </motion.button>
                   <motion.button
                     whileHover={{ scale: 1.1 }}
