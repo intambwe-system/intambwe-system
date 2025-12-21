@@ -1,4 +1,4 @@
-const { Marks, Student, Subject, Class, Trade, Employee, ClassSubject } = require('../../model');
+const { Marks, Student, Subject, Class, Trade, Employee, ClassSubject, DisciplineMarks } = require('../../model');
 const { Op } = require('sequelize');
 
 const reportController = {
@@ -60,25 +60,44 @@ const reportController = {
           std_id: std_id,
           ac_year: ac_year
         },
-   include: [
-  { 
-    model: Subject,
-    attributes: ['sbj_id', 'sbj_code', 'sbj_name', 'category_type'],
-    include: [
-      {
-        model: ClassSubject,
-        attributes: ['credit', 'total_max'],
-        where: student.class_id ? { class_id: student.class_id } : undefined,
-        required: false
-      }
-    ]
-  }
-],
+        include: [
+          { 
+            model: Subject,
+            attributes: ['sbj_id', 'sbj_code', 'sbj_name', 'category_type'],
+            include: [
+              {
+                model: ClassSubject,
+                attributes: ['credit', 'total_max'],
+                where: student.class_id ? { class_id: student.class_id } : undefined,
+                required: false
+              }
+            ]
+          }
+        ],
+        order: [['semester', 'ASC']]
+      });
+
+      // Fetch discipline marks for the academic year
+      const disciplineMarks = await DisciplineMarks.findAll({
+        where: {
+          std_id: std_id,
+          ac_year: ac_year
+        },
+        include: [
+          {
+            model: Employee,
+
+            attributes: ['emp_id', 'emp_name']
+          }
+        ],
         order: [['semester', 'ASC']]
       });
 
       // Process marks into structured format
       const processedSubjects = processStudentMarks(studentMarks);
+
+      // Process discipline marks into structured format
+      const processedDiscipline = processDisciplineMarks(disciplineMarks);
 
       // Get all students in the same class
       const classStudents = await Student.findAll({
@@ -121,6 +140,7 @@ const reportController = {
         },
         academicYear: ac_year,
         subjects: processedSubjects,
+        disciplineMarks: processedDiscipline,
         semesterResults: semesterRankings.semesterResults,
         overallStatistics: {
           totalMarks: overallStats.totalMarks,
@@ -200,21 +220,20 @@ const reportController = {
             std_id: student.std_id,
             ac_year: ac_year
           },
-         
-include: [
-  { 
-    model: Subject,
-    attributes: ['sbj_id', 'sbj_code', 'sbj_name', 'category_type'],
-    include: [
-      {
-        model: ClassSubject,
-        attributes: ['credit', 'total_max'],
-        where: student.class_id ? { class_id: student.class_id } : undefined,
-        required: false
-      }
-    ]
-  }
-]
+          include: [
+            { 
+              model: Subject,
+              attributes: ['sbj_id', 'sbj_code', 'sbj_name', 'category_type'],
+              include: [
+                {
+                  model: ClassSubject,
+                  attributes: ['credit', 'total_max'],
+                  where: student.class_id ? { class_id: student.class_id } : undefined,
+                  required: false
+                }
+              ]
+            }
+          ]
         });
 
         const processedSubjects = processStudentMarks(marks);
@@ -264,149 +283,54 @@ include: [
   }
 };
 
-// Helper function to process student marks
+// Helper function to process discipline marks
+function processDisciplineMarks(disciplineMarks) {
+  const disciplineMap = new Map();
 
-
-// Helper function to calculate overall statistics
-function calculateOverallStats(subjects) {
-  let totalMarks = 0;
-  let totalCredits = 0;
-  let subjectCount = 0;
-
-  subjects.forEach(subject => {
-    const termValues = Object.values(subject.terms).map(t => parseFloat(t.avg));
-    if (termValues.length > 0) {
-      const annualAvg = termValues.reduce((a, b) => a + b, 0) / termValues.length;
-      totalMarks += annualAvg;
-      totalCredits += subject.credits || 0;
-      subjectCount++;
-    }
-  });
-
-  const overallAverage = subjectCount > 0 ? (totalMarks / subjectCount) : 0;
-
-  return {
-    totalMarks: parseFloat(totalMarks.toFixed(1)),
-    overallAverage: parseFloat(overallAverage.toFixed(1)),
-    totalCredits: totalCredits,
-    subjectCount: subjectCount
-  };
-}
-
-// Helper function to calculate semester rankings and totals
-async function calculateSemesterRankings(classStudents, ac_year, current_std_id, processedSubjects) {
-  // Get all unique semesters from the processed subjects
-  const semestersSet = new Set();
-  processedSubjects.forEach(subject => {
-    Object.keys(subject.terms).forEach(term => semestersSet.add(term));
-  });
-  const semesters = Array.from(semestersSet).sort();
-
-  const semesterResults = [];
-
-  // Calculate for each semester
-  for (const semester of semesters) {
-    // Calculate current student's semester total
-    const studentSemesterData = calculateSemesterTotal(processedSubjects, semester);
-
-    // Calculate all students' totals for this semester
-    const allStudentTotals = [];
+  disciplineMarks.forEach(mark => {
+    const semester = mark.semester || 'Semester 1';
     
-    for (const student of classStudents) {
-      try {
-        const marks = await Marks.findAll({
-          where: {
-            std_id: student.std_id,
-            ac_year: ac_year,
-            semester: semester
-          },
-   include: [
-  { 
-    model: Subject,
-    attributes: ['sbj_id', 'sbj_code', 'sbj_name', 'category_type'],
-    include: [
-      {
-        model: ClassSubject,
-        attributes: ['credit', 'total_max'],
-        where: student.class_id ? { class_id: student.class_id } : undefined,
-        required: false
-      }
-    ]
-  }
-],
-        });
-
-        const studentSubjects = processStudentMarks(marks);
-        const semesterTotal = calculateSemesterTotal(studentSubjects, semester);
-
-        allStudentTotals.push({
-          std_id: student.std_id,
-          total: semesterTotal.totalMarks,
-          percentage: semesterTotal.percentage
-        });
-      } catch (error) {
-        console.error(`Error processing student ${student.std_id} for ${semester}:`, error);
-        allStudentTotals.push({
-          std_id: student.std_id,
-          total: 0,
-          percentage: 0
-        });
-      }
-    }
-
-    // Sort by percentage (descending)
-    allStudentTotals.sort((a, b) => b.percentage - a.percentage);
-
-    // Find current student's position
-    const position = allStudentTotals.findIndex(s => s.std_id === parseInt(current_std_id)) + 1;
-    const totalStudents = allStudentTotals.length;
-    const percentile = totalStudents > 0 ? 
-      parseFloat(((totalStudents - position + 1) / totalStudents * 100).toFixed(1)) : 0;
-
-    semesterResults.push({
+    disciplineMap.set(semester, {
+      dis_id: mark.dis_id,
       semester: semester,
-      totalMarks: studentSemesterData.totalMarks,
-      maxMarks: studentSemesterData.maxMarks,
-      percentage: studentSemesterData.percentage,
-      subjectCount: studentSemesterData.subjectCount,
-      ranking: {
-        position: position || null,
-        totalStudents: totalStudents,
-        percentile: percentile
-      }
+      score: parseFloat(mark.discipline_score) || 0,
+      maxScore: parseFloat(mark.discipline_maxScore) || 100,
+      percentage: mark.discipline_maxScore > 0 
+        ? ((parseFloat(mark.discipline_score) / parseFloat(mark.discipline_maxScore)) * 100).toFixed(1)
+        : 0,
+      recordedBy: mark.Employee ? {
+        emp_id: mark.Employee.emp_id,
+        name: `${mark.Employee.emp_name}`
+      } : null,
+      dateRecorded: mark.date_recorded
     });
-  }
+  });
 
-  return { semesterResults };
+  return Array.from(disciplineMap.values());
 }
 
-// Helper function to calculate semester total
 // Helper function to process student marks
 function processStudentMarks(marks) {
   const subjectMap = new Map();
-
-
-  
 
   marks.forEach(mark => {
     if (!mark.Subject) return;
 
     const key = mark.Subject.sbj_code;
 
-   if (!subjectMap.has(key)) {
-  const classSubject = mark.Subject.ClassSubjects?.[0];
+    if (!subjectMap.has(key)) {
+      const classSubject = mark.Subject.ClassSubjects?.[0];
 
-  subjectMap.set(key, {
-    sbj_id: mark.Subject.sbj_id,
-    code: mark.Subject.sbj_code,
-    title: mark.Subject.sbj_name,
-    credits: classSubject ? classSubject.credit : 0,
-    totalMax: classSubject ? classSubject.total_max : 100,
-    category: mark.Subject.category_type || 'GENERAL',
-    terms: {}
-  });
-}
-
+      subjectMap.set(key, {
+        sbj_id: mark.Subject.sbj_id,
+        code: mark.Subject.sbj_code,
+        title: mark.Subject.sbj_name,
+        credits: classSubject ? classSubject.credit : 0,
+        totalMax: classSubject ? classSubject.total_max : 100,
+        category: mark.Subject.category_type || 'GENERAL',
+        terms: {}
+      });
+    }
 
     const subject = subjectMap.get(key);
     const termKey = mark.semester || 'Semester 1';
@@ -487,7 +411,92 @@ function calculateOverallStats(subjects) {
   };
 }
 
+// Helper function to calculate semester rankings and totals
+async function calculateSemesterRankings(classStudents, ac_year, current_std_id, processedSubjects) {
+  // Get all unique semesters from the processed subjects
+  const semestersSet = new Set();
+  processedSubjects.forEach(subject => {
+    Object.keys(subject.terms).forEach(term => semestersSet.add(term));
+  });
+  const semesters = Array.from(semestersSet).sort();
 
+  const semesterResults = [];
+
+  // Calculate for each semester
+  for (const semester of semesters) {
+    // Calculate current student's semester total
+    const studentSemesterData = calculateSemesterTotal(processedSubjects, semester);
+
+    // Calculate all students' totals for this semester
+    const allStudentTotals = [];
+    
+    for (const student of classStudents) {
+      try {
+        const marks = await Marks.findAll({
+          where: {
+            std_id: student.std_id,
+            ac_year: ac_year,
+            semester: semester
+          },
+          include: [
+            { 
+              model: Subject,
+              attributes: ['sbj_id', 'sbj_code', 'sbj_name', 'category_type'],
+              include: [
+                {
+                  model: ClassSubject,
+                  attributes: ['credit', 'total_max'],
+                  where: student.class_id ? { class_id: student.class_id } : undefined,
+                  required: false
+                }
+              ]
+            }
+          ],
+        });
+
+        const studentSubjects = processStudentMarks(marks);
+        const semesterTotal = calculateSemesterTotal(studentSubjects, semester);
+
+        allStudentTotals.push({
+          std_id: student.std_id,
+          total: semesterTotal.totalMarks,
+          percentage: semesterTotal.percentage
+        });
+      } catch (error) {
+        console.error(`Error processing student ${student.std_id} for ${semester}:`, error);
+        allStudentTotals.push({
+          std_id: student.std_id,
+          total: 0,
+          percentage: 0
+        });
+      }
+    }
+
+    // Sort by percentage (descending)
+    allStudentTotals.sort((a, b) => b.percentage - a.percentage);
+
+    // Find current student's position
+    const position = allStudentTotals.findIndex(s => s.std_id === parseInt(current_std_id)) + 1;
+    const totalStudents = allStudentTotals.length;
+    const percentile = totalStudents > 0 ? 
+      parseFloat(((totalStudents - position + 1) / totalStudents * 100).toFixed(1)) : 0;
+
+    semesterResults.push({
+      semester: semester,
+      totalMarks: studentSemesterData.totalMarks,
+      maxMarks: studentSemesterData.maxMarks,
+      percentage: studentSemesterData.percentage,
+      subjectCount: studentSemesterData.subjectCount,
+      ranking: {
+        position: position || null,
+        totalStudents: totalStudents,
+        percentile: percentile
+      }
+    });
+  }
+
+  return { semesterResults };
+}
 
 // Helper function to calculate semester total
 function calculateSemesterTotal(subjects, semester) {
@@ -524,20 +533,20 @@ async function calculateClassRanking(classStudents, ac_year, current_std_id, cur
           std_id: student.std_id,
           ac_year: ac_year
         },
-           include: [
-  { 
-    model: Subject,
-    attributes: ['sbj_id', 'sbj_code', 'sbj_name', 'category_type'],
-    include: [
-      {
-        model: ClassSubject,
-        attributes: ['credit', 'total_max'],
-        where: student.class_id ? { class_id: student.class_id } : undefined,
-        required: false
-      }
-    ]
-  }
-],
+        include: [
+          { 
+            model: Subject,
+            attributes: ['sbj_id', 'sbj_code', 'sbj_name', 'category_type'],
+            include: [
+              {
+                model: ClassSubject,
+                attributes: ['credit', 'total_max'],
+                where: student.class_id ? { class_id: student.class_id } : undefined,
+                required: false
+              }
+            ]
+          }
+        ],
       });
 
       const processedSubjects = processStudentMarks(marks);

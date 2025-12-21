@@ -13,6 +13,7 @@ const Attendance = require("./Attendance");
 const Trade = require("./Trade");
 const SubjectTrade = require("./SubjectTrade");
 const ClassSubject = require("./ClassSubject");
+const DisciplineMarks = require("./DisciplineMarks");
 
 // Define Associations
 
@@ -131,6 +132,35 @@ Attendance.belongsTo(Student, { foreignKey: "student_id", as: "student" });
 Attendance.belongsTo(Class, { foreignKey: "class_id", as: "class" });
 Attendance.belongsTo(Employee, { foreignKey: "emp_id", as: "recordedBy" });
 
+Student.hasMany(DisciplineMarks, {
+  foreignKey: "std_id",
+  onDelete: "CASCADE",
+});
+
+DisciplineMarks.belongsTo(Student, {
+  foreignKey: "std_id",
+});
+
+Class.hasMany(DisciplineMarks, {
+  foreignKey: "class_id",
+  onDelete: "SET NULL",
+});
+
+DisciplineMarks.belongsTo(Class, {
+  foreignKey: "class_id",
+});
+
+
+Employee.hasMany(DisciplineMarks, {
+  foreignKey: "emp_id",
+  onDelete: "SET NULL",
+});
+
+DisciplineMarks.belongsTo(Employee, {
+  foreignKey: "emp_id",
+
+});
+
 
 
 // Sync database
@@ -164,4 +194,5 @@ module.exports = {
   syncDatabase,
   Trade,
   ClassSubject,
+  DisciplineMarks,
 };
