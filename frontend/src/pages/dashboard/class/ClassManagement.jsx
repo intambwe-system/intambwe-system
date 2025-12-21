@@ -16,6 +16,7 @@ import {
   RefreshCw,
   List,
   School,
+  ShieldAlert,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom"; 
 import { motion, AnimatePresence } from "framer-motion";
@@ -458,7 +459,7 @@ const ClassManagementDashboard = () => {
                     title="Marks"
                     className="text-gray-500 hover:text-primary-600 p-2 rounded-full hover:bg-primary-50"
                   >
-                    <School className="w-4 h-4" />
+                    <BookOpen className="w-4 h-4" />
                   </motion.button>
                   <motion.button
                     whileHover={{ scale: 1.1 }}
@@ -466,7 +467,7 @@ const ClassManagementDashboard = () => {
                     title="Discipline"
                     className="text-gray-500 hover:text-primary-600 p-2 rounded-full hover:bg-primary-50"
                   >
-                    <School className="w-4 h-4" />
+                    <ShieldAlert className="w-4 h-4" />
                   </motion.button>
                   <motion.button
                     whileHover={{ scale: 1.1 }}
