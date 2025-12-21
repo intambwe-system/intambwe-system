@@ -379,15 +379,23 @@ const ClassReportsViewer = () => {
 };
 
 
-
-export const TraineeAssessmentReportDisplay = ({ reportData, academicYear, onBack }) => {
-  const [viewMode, setViewMode] = useState('all'); // 'all', 'semester1', 'semester2', 'semester3'
+export const TraineeAssessmentReportDisplay = ({ 
+  reportData, 
+  academicYear, 
+  onBack,
+  initialViewMode = 'all' // New prop with default value
+}) => {
+  const [viewMode, setViewMode] = useState(initialViewMode);
 
   const calculateAnnualAverage = (terms) => {
     const values = Object.values(terms).map(t => parseFloat(t.avg)).filter(v => !isNaN(v) && v > 0);
     if (values.length === 0) return null;
     return (values.reduce((a, b) => a + b, 0) / values.length).toFixed(1);
   };
+
+  useEffect(()=>{
+    setViewMode(initialViewMode);
+  },[initialViewMode])
 
   const hasAllSemesters = () => {
     const subjects = getAllSubjects();
@@ -427,60 +435,65 @@ export const TraineeAssessmentReportDisplay = ({ reportData, academicYear, onBac
     return {};
   };
 
-  const getObservation = (item, annualAvg, type) => {
+  // Updated to handle single term observations
+  const getObservation = (item, annualAvg, type, currentSemester = null) => {
     const allSemesters = hasAllSemesters();
-
-    if (allSemesters && annualAvg) {
+    
+    // If viewing all terms and all semesters are complete
+    if (viewMode === 'all' && allSemesters && annualAvg) {
       const avg = parseFloat(annualAvg);
       if (type?.includes('CORE') || type?.toLowerCase().includes('core') || type?.toLowerCase().includes('specific')) {
-        return avg > 70 ? 'C' : 'NYC';
+        return avg >= 70 ? 'C' : 'NYC';
       } else if (type?.toLowerCase().includes('general')) {
-        return avg > 60 ? 'C' : 'NYC';
+        return avg >= 60 ? 'C' : 'NYC';
       } else {
-        return avg > 50 ? 'C' : 'NYC';
+        return avg >= 50 ? 'C' : 'NYC';
       }
-    } else {
+    } 
+    // For single term view or when not all semesters complete
+    else {
       const terms = item.terms || {};
-      const s3 = parseFloat(terms['Semester 3']?.avg);
-      const s2 = parseFloat(terms['Semester 2']?.avg);
-      const s1 = parseFloat(terms['Semester 1']?.avg);
+      let termAvg = null;
 
-      const recentAvg = !isNaN(s3) && s3 > 0 ? s3 : (!isNaN(s2) && s2 > 0 ? s2 : s1);
+      // If viewing a single semester, use that semester's data
+      if (currentSemester) {
+        termAvg = parseFloat(terms[currentSemester]?.avg);
+      } else {
+        // Otherwise, get the most recent available term
+        const s3 = parseFloat(terms['Semester 3']?.avg);
+        const s2 = parseFloat(terms['Semester 2']?.avg);
+        const s1 = parseFloat(terms['Semester 1']?.avg);
+        termAvg = !isNaN(s3) && s3 > 0 ? s3 : (!isNaN(s2) && s2 > 0 ? s2 : s1);
+      }
 
-      if (!recentAvg || isNaN(recentAvg)) return '-';
+      if (!termAvg || isNaN(termAvg)) return '-';
 
       if (type?.includes('CORE') || type?.toLowerCase().includes('core') || type?.toLowerCase().includes('specific')) {
-        return recentAvg > 70 ? 'C' : 'NYC';
+        return termAvg >= 70 ? 'C' : 'NYC';
       } else if (type?.toLowerCase().includes('general')) {
-        return recentAvg > 60 ? 'C' : 'NYC';
+        return termAvg >= 60 ? 'C' : 'NYC';
       } else {
-        return recentAvg > 50 ? 'C' : 'NYC';
+        return termAvg >= 50 ? 'C' : 'NYC';
       }
     }
   };
 
-  /**
- * Get discipline score by semester
- * @param {Array} records - Array of discipline marks
- * @param {String} semester - Semester name to search for
- * @returns {Object|null} - Object with score info or null if not found
- */
-function getDisciplineScoreBySemester( semester) {
-  const records = reportData?.disciplineMarks || [];
-  if (!Array.isArray(records) || !semester) return null;
+  function getDisciplineScoreBySemester(semester) {
+    const records = reportData?.disciplineMarks || [];
+    if (!Array.isArray(records) || !semester) return null;
 
-  const record = records.find(r => r.semester === semester);
+    const record = records.find(r => r.semester === semester);
 
-  if (!record) return null;
+    if (!record) return null;
 
-  return {
-    score: record.score,
-    maxScore: record.maxScore,
-    percentage: record.percentage,
-    dateRecorded: record.dateRecorded,
-    recordedBy: record.recordedBy
-  };
-}
+    return {
+      score: record.score,
+      maxScore: record.maxScore,
+      percentage: record.percentage,
+      dateRecorded: record.dateRecorded,
+      recordedBy: record.recordedBy
+    };
+  }
 
   const getAllSubjects = () => {
     const { coreSpecific, coreGeneral, complementary } = getCategories();
@@ -552,7 +565,7 @@ function getDisciplineScoreBySemester( semester) {
   const getOverallRanking = () => reportData?.overallRanking || { position: null, totalStudents: 0, percentile: 0 };
 
   const { coreSpecific, coreGeneral, complementary } = getCategories();
-  const student = reportData.student;
+  const student = reportData?.student || {};
   const overallStats = getOverallStats();
   const overallRanking = getOverallRanking();
 
@@ -562,7 +575,6 @@ function getDisciplineScoreBySemester( semester) {
 
   const allSemestersComplete = hasAllSemesters();
 
-  // Determine which semesters to display based on view mode
   const getSemestersToDisplay = () => {
     if (viewMode === 'all') {
       return ['Semester 1', 'Semester 2', 'Semester 3'];
@@ -578,25 +590,18 @@ function getDisciplineScoreBySemester( semester) {
 
   const semestersToDisplay = getSemestersToDisplay();
   const showAnnualAverage = viewMode === 'all';
+  const showObservation = true; // Always show observation column
 
   return (
-    <div className="bg-white p-4">
+    <div className="report-container">
       <style>{`
         @media print {
-          body * {
-            visibility: hidden;
-          }
-          .print-area, .print-area * {
-            visibility: visible;
-          }
-          .print-area {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-          }
           .no-print {
             display: none !important;
+          }
+          .report-container {
+            width: 100%;
+            height: 100%;
           }
         }
       `}</style>
@@ -654,12 +659,14 @@ function getDisciplineScoreBySemester( semester) {
           >
             Print Report
           </button>
-          <button
-            onClick={onBack}
-            className="bg-gray-600 text-white px-6 py-2 rounded hover:bg-gray-700"
-          >
-            Back to Classes
-          </button>
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="bg-gray-600 text-white px-6 py-2 rounded hover:bg-gray-700"
+            >
+              Back to Classes
+            </button>
+          )}
         </div>
       </div>
 
@@ -674,14 +681,14 @@ function getDisciplineScoreBySemester( semester) {
           </div>
 
           <div className="border-r border-black p-3 flex flex-col items-center justify-center">
-            <img src={logo} className='h-40' alt="" />
+            <img src={logo} className='h-40' alt="School Logo" />
           </div>
 
           <div className="p-3 text-xs">
-            <div><span className="font-bold">YEAR:</span> {academicYear}</div>
+            <div><span className="font-bold">YEAR:</span> {academicYear || 'N/A'}</div>
             <div className="mt-1"><span className="font-bold">CLASS:</span> {student.Class?.class_name || 'N/A'}</div>
-            <div className="mt-1"><span className="font-bold">NAMES:</span> {student.std_fname} {student.std_mname || ''} {student.std_lname}</div>
-            <div className="mt-1"><span className="font-bold">REG NO:</span> {student.admission_number}</div>
+            <div className="mt-1"><span className="font-bold">NAMES:</span> {student.std_fname || ''} {student.std_mname || ''} {student.std_lname || ''}</div>
+            <div className="mt-1"><span className="font-bold">REG NO:</span> {student.admission_number || 'N/A'}</div>
           </div>
         </div>
 
@@ -725,7 +732,8 @@ function getDisciplineScoreBySemester( semester) {
           <span className="font-bold">F.A:</span> Formative Assessment |
           <span className="font-bold"> LA:</span> Integrated Assessment |
           <span className="font-bold"> C.A:</span> Comprehensive Assessment |
-          <span className="font-bold"> AVG:</span> Average
+          <span className="font-bold"> AVG:</span> Average |
+          <span className="font-bold"> OBS:</span> Observation 
           {showAnnualAverage && (
             <>
               <span className="font-bold"> | A.A:</span> Annual Average
@@ -748,8 +756,11 @@ function getDisciplineScoreBySemester( semester) {
               ))}
               
               {showAnnualAverage && (
-                <th colSpan={3} className="border border-black p-1 bg-gray-100">A.A<br />(%)</th>
+                <th colSpan={2} className="border border-black p-1 bg-gray-100">A.A<br />(%)</th>
               )}
+              
+              {/* Always show observation column */}
+              <th className="border border-black p-1 bg-gray-100">OBS</th>
             </tr>
 
             <tr className="bg-gray-100 font-bold">
@@ -766,10 +777,12 @@ function getDisciplineScoreBySemester( semester) {
               })}
 
               {showAnnualAverage && (
-                <td colSpan="3" className="border border-black p-1 text-center">
+                <td colSpan="2" className="border border-black p-1 text-center">
                   {allSemestersComplete ? `${overallStats.overallAverage}%` : '-'}
                 </td>
               )}
+              
+              <td className="border border-black p-1 text-center">-</td>
             </tr>
 
             <tr>
@@ -790,9 +803,9 @@ function getDisciplineScoreBySemester( semester) {
                 <>
                   <th className="border border-black p-0.5">A.A</th>
                   <th className="border border-black p-0.5">R.E</th>
-                  <th className="border border-black p-0.5">Observation</th>
                 </>
               )}
+              <th className="border border-black p-0.5">OBS</th>
             </tr>
           </thead>
           <tbody>
@@ -804,13 +817,14 @@ function getDisciplineScoreBySemester( semester) {
                 </tr>
                 {coreSpecific.map((item, idx) => {
                   const annualAvg = calculateAnnualAverage(item.terms);
+                  const currentSemester = semestersToDisplay.length === 1 ? semestersToDisplay[0] : null;
                   return (
                     <tr key={`cs-${idx}`}>
                       <td colSpan="3" className="border border-black p-1">{item.code}</td>
                       <td className="border border-black p-1">{item.title}</td>
                       <td className="border border-black p-1 text-center">{item.credits}</td>
                       {semestersToDisplay.map((term, termIdx) => {
-                        const termData = item.terms[term] || {};
+                        const termData = item.terms?.[term] || {};
                         return (
                           <React.Fragment key={termIdx}>
                             <td className="border border-black p-1 text-center" style={getMarkStyle(termData.fa, 'specific')}>{termData.fa || '-'}</td>
@@ -826,11 +840,11 @@ function getDisciplineScoreBySemester( semester) {
                             {allSemestersComplete && annualAvg ? annualAvg : '-'}
                           </td>
                           <td className="border border-black p-1 text-center font-bold"></td>
-                          <td className="border border-black p-1 text-center font-bold">
-                            {getObservation(item, annualAvg, 'specific')}
-                          </td>
                         </>
                       )}
+                      <td className="border border-black p-1 text-center font-bold">
+                        {getObservation(item, annualAvg, 'specific', currentSemester)}
+                      </td>
                     </tr>
                   );
                 })}
@@ -845,13 +859,14 @@ function getDisciplineScoreBySemester( semester) {
                 </tr>
                 {coreGeneral.map((item, idx) => {
                   const annualAvg = calculateAnnualAverage(item.terms);
+                  const currentSemester = semestersToDisplay.length === 1 ? semestersToDisplay[0] : null;
                   return (
                     <tr key={`cg-${idx}`}>
                       <td colSpan="3" className="border border-black p-1">{item.code}</td>
                       <td className="border border-black p-1">{item.title}</td>
                       <td className="border border-black p-1 text-center">{item.credits}</td>
                       {semestersToDisplay.map((term, termIdx) => {
-                        const termData = item.terms[term] || {};
+                        const termData = item.terms?.[term] || {};
                         return (
                           <React.Fragment key={termIdx}>
                             <td className="border border-black p-1 text-center" style={getMarkStyle(termData.fa, 'general')}>{termData.fa || '-'}</td>
@@ -867,11 +882,11 @@ function getDisciplineScoreBySemester( semester) {
                             {allSemestersComplete && annualAvg ? annualAvg : '-'}
                           </td>
                           <td className="border border-black p-1 text-center font-bold"></td>
-                          <td className="border border-black p-1 text-center font-bold">
-                            {getObservation(item, annualAvg, 'general')}
-                          </td>
                         </>
                       )}
+                      <td className="border border-black p-1 text-center font-bold">
+                        {getObservation(item, annualAvg, 'general', currentSemester)}
+                      </td>
                     </tr>
                   );
                 })}
@@ -886,13 +901,14 @@ function getDisciplineScoreBySemester( semester) {
                 </tr>
                 {complementary.map((item, idx) => {
                   const annualAvg = calculateAnnualAverage(item.terms);
+                  const currentSemester = semestersToDisplay.length === 1 ? semestersToDisplay[0] : null;
                   return (
                     <tr key={`cc-${idx}`}>
                       <td colSpan="3" className="border border-black p-1">{item.code}</td>
                       <td className="border border-black p-1">{item.title}</td>
                       <td className="border border-black p-1 text-center">{item.credits}</td>
                       {semestersToDisplay.map((term, termIdx) => {
-                        const termData = item.terms[term] || {};
+                        const termData = item.terms?.[term] || {};
                         return (
                           <React.Fragment key={termIdx}>
                             <td className="border border-black p-1 text-center" style={getMarkStyle(termData.fa, 'complementary')}>{termData.fa || '-'}</td>
@@ -908,11 +924,11 @@ function getDisciplineScoreBySemester( semester) {
                             {allSemestersComplete && annualAvg ? annualAvg : '-'}
                           </td>
                           <td className="border border-black p-1 text-center font-bold"></td>
-                          <td className="border border-black p-1 text-center font-bold">
-                            {getObservation(item, annualAvg, 'complementary')}
-                          </td>
                         </>
                       )}
+                      <td className="border border-black p-1 text-center font-bold">
+                        {getObservation(item, annualAvg, 'complementary', currentSemester)}
+                      </td>
                     </tr>
                   );
                 })}
@@ -958,9 +974,9 @@ function getDisciplineScoreBySemester( semester) {
                         {allSemestersComplete ? overallStats.totalMarks : '-'}
                       </td>
                       <td className="border border-black p-1 text-center"></td>
-                      <td className="border border-black p-1 text-center"></td>
                     </>
                   )}
+                  <td className="border border-black p-1 text-center"></td>
                 </tr>
 
                 {/* Position Row */}
@@ -972,7 +988,7 @@ function getDisciplineScoreBySemester( semester) {
                     const result = getSemesterResult(semester);
                     return (
                       <td key={idx} colSpan="4" className="border border-black p-1 text-center">
-                        {result && result.ranking.position
+                        {result && result.ranking?.position
                           ? `${result.ranking.position} out of ${result.ranking.totalStudents}`
                           : '-'}
                       </td>
@@ -986,9 +1002,9 @@ function getDisciplineScoreBySemester( semester) {
                           ? `${overallRanking.position} out of ${overallRanking.totalStudents}`
                           : '-'}
                       </td>
-                      <td className="border border-black p-1 text-center"></td>
                     </>
                   )}
+                  <td className="border border-black p-1 text-center"></td>
                 </tr>
               </>
             )}
@@ -1008,10 +1024,12 @@ function getDisciplineScoreBySemester( semester) {
               })}
 
               {showAnnualAverage && (
-                <td colSpan="3" className="border border-black p-1 text-center">
+                <td colSpan="2" className="border border-black p-1 text-center">
                   {allSemestersComplete ? `${overallStats.overallAverage}%` : '-'}
                 </td>
               )}
+              
+              <td className="border border-black p-1 text-center">-</td>
             </tr>
 
 
@@ -1023,8 +1041,9 @@ function getDisciplineScoreBySemester( semester) {
                 <td key={idx} colSpan="4" className="border border-black p-1 text-center"></td>
               ))}
               {showAnnualAverage && (
-                <td colSpan="3" className="border border-black p-1 text-center"></td>
+                <td colSpan="2" className="border border-black p-1 text-center"></td>
               )}
+              <td className="border border-black p-1 text-center"></td>
             </tr>
             <tr className="bg-white font-bold">
               <td colSpan="4" className="border border-black p-1 text-left">Parents signature</td>
@@ -1033,8 +1052,9 @@ function getDisciplineScoreBySemester( semester) {
                 <td key={idx} colSpan="4" className="border border-black p-1 text-center"></td>
               ))}
               {showAnnualAverage && (
-                <td colSpan="3" className="border border-black p-1 text-center"></td>
+                <td colSpan="2" className="border border-black p-1 text-center"></td>
               )}
+              <td className="border border-black p-1 text-center"></td>
             </tr>
           </tbody>
         </table>
