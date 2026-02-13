@@ -15,6 +15,14 @@ const SubjectTrade = require("./SubjectTrade");
 const ClassSubject = require("./ClassSubject");
 const DisciplineMarks = require("./DisciplineMarks");
 
+// Exam & Assessment Models
+const Exam = require("./Exam");
+const Question = require("./Question");
+const AnswerOption = require("./AnswerOption");
+const ExamAttempt = require("./ExamAttempt");
+const StudentResponse = require("./StudentResponse");
+const GuestParticipant = require("./GuestParticipant");
+
 // Define Associations
 
 // Department Associations
@@ -70,6 +78,7 @@ Class.belongsTo(Trade, {
 
 // Student Associations
 Student.belongsTo(Class, { foreignKey: "class_id" });
+Student.belongsTo(Department, { foreignKey: "dpt_id" });
 
 Student.hasMany(Marks, { foreignKey: "std_id", onDelete: "CASCADE" });
 Student.hasMany(Attendance, { foreignKey: "student_id", onDelete: "CASCADE" });
@@ -158,10 +167,49 @@ Employee.hasMany(DisciplineMarks, {
 
 DisciplineMarks.belongsTo(Employee, {
   foreignKey: "emp_id",
-
 });
 
+// ============================================
+// EXAM & ASSESSMENT ASSOCIATIONS
+// ============================================
 
+// Exam Associations
+Exam.belongsTo(Subject, { foreignKey: "sbj_id", as: "subject" });
+Exam.belongsTo(Class, { foreignKey: "class_id", as: "class" });
+Exam.belongsTo(Employee, { foreignKey: "created_by", as: "creator" });
+Exam.hasMany(Question, { foreignKey: "exam_id", onDelete: "CASCADE" });
+Exam.hasMany(ExamAttempt, { foreignKey: "exam_id", onDelete: "CASCADE" });
+
+Subject.hasMany(Exam, { foreignKey: "sbj_id", onDelete: "SET NULL" });
+Class.hasMany(Exam, { foreignKey: "class_id", onDelete: "SET NULL" });
+Employee.hasMany(Exam, { foreignKey: "created_by", as: "createdExams", onDelete: "SET NULL" });
+
+// Question Associations
+Question.belongsTo(Exam, { foreignKey: "exam_id", as: "exam" });
+Question.belongsTo(Employee, { foreignKey: "created_by", as: "creator" });
+Question.hasMany(AnswerOption, { foreignKey: "question_id", onDelete: "CASCADE" });
+Question.hasMany(StudentResponse, { foreignKey: "question_id", onDelete: "CASCADE" });
+
+// AnswerOption Associations
+AnswerOption.belongsTo(Question, { foreignKey: "question_id", as: "question" });
+
+// ExamAttempt Associations
+ExamAttempt.belongsTo(Exam, { foreignKey: "exam_id", as: "exam" });
+ExamAttempt.belongsTo(Student, { foreignKey: "std_id", as: "student" });
+ExamAttempt.belongsTo(GuestParticipant, { foreignKey: "guest_id", as: "guest" });
+ExamAttempt.belongsTo(Class, { foreignKey: "class_id", as: "class" });
+ExamAttempt.belongsTo(Employee, { foreignKey: "graded_by", as: "grader" });
+ExamAttempt.hasMany(StudentResponse, { foreignKey: "attempt_id", onDelete: "CASCADE" });
+
+Student.hasMany(ExamAttempt, { foreignKey: "std_id", onDelete: "CASCADE" });
+GuestParticipant.hasMany(ExamAttempt, { foreignKey: "guest_id", onDelete: "CASCADE" });
+Employee.hasMany(ExamAttempt, { foreignKey: "graded_by", as: "gradedAttempts", onDelete: "SET NULL" });
+
+// StudentResponse Associations
+StudentResponse.belongsTo(ExamAttempt, { foreignKey: "attempt_id", as: "attempt" });
+StudentResponse.belongsTo(Question, { foreignKey: "question_id", as: "question" });
+StudentResponse.belongsTo(AnswerOption, { foreignKey: "selected_option_id", as: "selectedOption" });
+StudentResponse.belongsTo(Employee, { foreignKey: "grader_id", as: "grader" });
 
 // Sync database
 const syncDatabase = async () => {
@@ -195,4 +243,11 @@ module.exports = {
   Trade,
   ClassSubject,
   DisciplineMarks,
+  // Exam & Assessment Models
+  Exam,
+  Question,
+  AnswerOption,
+  ExamAttempt,
+  StudentResponse,
+  GuestParticipant,
 };

@@ -1,0 +1,106 @@
+[
+  {
+    "question_text": "What is the capital of France?",
+    "question_type": "multiple_choice_single",
+    "points": 2,
+    "difficulty": "easy",
+    "explanation": "Paris is the capital and largest city of France.",
+    "options": [
+      { "option_text": "London", "is_correct": false },
+      { "option_text": "Paris", "is_correct": true },
+      { "option_text": "Berlin", "is_correct": false },
+      { "option_text": "Madrid", "is_correct": false }
+    ]
+  },
+  {
+    "question_text": "Which of the following are programming languages?",
+    "question_type": "multiple_choice_multiple",
+    "points": 3,
+    "difficulty": "medium",
+    "explanation": "Python and JavaScript are programming languages. HTML and CSS are markup/styling languages.",
+    "options": [
+      { "option_text": "Python", "is_correct": true },
+      { "option_text": "HTML", "is_correct": false },
+      { "option_text": "JavaScript", "is_correct": true },
+      { "option_text": "CSS", "is_correct": false }
+    ]
+  },
+  {
+    "question_text": "The Earth is flat.",
+    "question_type": "true_false",
+    "points": 1,
+    "difficulty": "easy",
+    "explanation": "The Earth is an oblate spheroid, not flat.",
+    "options": [
+      { "option_text": "True", "is_correct": false },
+      { "option_text": "False", "is_correct": true }
+    ]
+  },
+  {
+    "question_text": "Water boils at 100 degrees Celsius at sea level.",
+    "question_type": "true_false",
+    "points": 1,
+    "difficulty": "easy",
+    "options": [
+      { "option_text": "True", "is_correct": true },
+      { "option_text": "False", "is_correct": false }
+    ]
+  },
+  {
+    "question_text": "The chemical symbol for water is ____.",
+    "question_type": "fill_in_blank",
+    "points": 1,
+    "difficulty": "easy",
+    "explanation": "H2O represents two hydrogen atoms bonded to one oxygen atom.",
+    "correct_answers": ["H2O", "h2o", "H20", "h20"]
+  },
+  {
+    "question_text": "The largest planet in our solar system is ____.",
+    "question_type": "fill_in_blank",
+    "points": 2,
+    "difficulty": "medium",
+    "correct_answers": ["Jupiter", "jupiter", "JUPITER"]
+  },
+  {
+    "question_text": "Briefly explain what photosynthesis is.",
+    "question_type": "short_answer",
+    "points": 5,
+    "difficulty": "medium",
+    "explanation": "Photosynthesis is the process by which plants convert sunlight, water, and CO2 into glucose and oxygen.",
+    "word_limit_min": 20,
+    "word_limit_max": 100
+  },
+  {
+    "question_text": "Discuss the causes and effects of climate change. Include at least three causes and three effects in your answer.",
+    "question_type": "essay",
+    "points": 15,
+    "difficulty": "hard",
+    "word_limit_min": 200,
+    "word_limit_max": 500
+  },
+  {
+    "question_text": "What is 2 + 2?",
+    "question_type": "multiple_choice_single",
+    "points": 1,
+    "difficulty": "easy",
+    "options": [
+      { "option_text": "3", "is_correct": false },
+      { "option_text": "4", "is_correct": true },
+      { "option_text": "5", "is_correct": false },
+      { "option_text": "6", "is_correct": false }
+    ]
+  },
+  {
+    "question_text": "Select all prime numbers from the list below.",
+    "question_type": "multiple_choice_multiple",
+    "points": 4,
+    "difficulty": "medium",
+    "explanation": "Prime numbers are only divisible by 1 and themselves. 2, 3, 5, and 7 are prime.",
+    "options": [
+      { "option_text": "2", "is_correct": true },
+      { "option_text": "4", "is_correct": false },
+      { "option_text": "5", "is_correct": true },
+      { "option_text": "9", "is_correct": false }
+    ]
+  }
+]

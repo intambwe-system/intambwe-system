@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   Menu, X, Home, Users, Package, ShoppingCart, BarChart3, TrendingDown,
   Archive, FolderTree, BookOpen, GraduationCap, Award, Settings,
-  Building2, LogOut, ChevronDown
+  Building2, LogOut, ChevronDown, FileText, ClipboardCheck
 } from 'lucide-react';
 import {useNavigate}  from 'react-router-dom'
 
@@ -163,11 +163,23 @@ const Sidebar = ({ isOpen = true, onClose = () => {} }) => {
           path: '/employee/dashboard/my-subjects',
           roles: ['teacher']
         },
-        { 
-          title: 'Assign Subjects', 
-          icon: BookOpen, 
+        {
+          title: 'Assign Subjects',
+          icon: BookOpen,
           path: '/employee/dashboard/assign-class-subjects',
           roles: ['admin'] // Only admin can assign subjects
+        },
+        {
+          title: 'Exams',
+          icon: FileText,
+          path: '/employee/dashboard/exams',
+          roles: ['teacher', 'admin']
+        },
+        {
+          title: 'My Exams',
+          icon: ClipboardCheck,
+          path: '/employee/dashboard/student-exams',
+          roles: ['teacher', 'admin', 'student']
         },
       ]
     }

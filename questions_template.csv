@@ -1,0 +1,11 @@
+question_text,question_type,points,difficulty,option_1,correct_1,option_2,correct_2,option_3,correct_3,option_4,correct_4,correct_answers,explanation
+"What is the capital of France?",multiple_choice_single,2,easy,"London",false,"Paris",true,"Berlin",false,"Madrid",false,,"Paris is the capital of France"
+"Which are programming languages?",multiple_choice_multiple,3,medium,"Python",true,"HTML",false,"JavaScript",true,"CSS",false,,"Python and JS are programming languages"
+"The Earth is flat.",true_false,1,easy,"True",false,"False",true,,,,,,"The Earth is spherical"
+"Water boils at 100C at sea level.",true_false,1,easy,"True",true,"False",false,,,,,,
+"The chemical symbol for water is ____.",fill_in_blank,1,easy,,,,,,,,"H2O|h2o|H20","H2O = 2 hydrogen + 1 oxygen"
+"The largest planet is ____.",fill_in_blank,2,medium,,,,,,,,"Jupiter|jupiter",
+"Explain what photosynthesis is.",short_answer,5,medium,,,,,,,,"Plants convert sunlight to energy"
+"Discuss causes and effects of climate change.",essay,15,hard,,,,,,,,,"Include 3 causes and 3 effects"
+"What is 2 + 2?",multiple_choice_single,1,easy,"3",false,"4",true,"5",false,"6",false,,
+"Select all prime numbers.",multiple_choice_multiple,4,medium,"2",true,"4",false,"5",true,"9",false,,"Primes: divisible by 1 and itself"

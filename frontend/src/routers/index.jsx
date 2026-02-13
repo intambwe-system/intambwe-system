@@ -1,9 +1,12 @@
 import React, { Suspense } from "react";
 import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
 import EmployeeDashboardLayout from "../layout/EmployeeDashboardLayout";
+import StudentDashboardLayout from "../layout/StudentDashboardLayout";
 import MainLayout from "../layout/MainLayout";
 import PrivateEmployeeRoute from "../layout/protectors/PrivateEmployeeRoute";
+import PrivateStudentRoute from "../layout/protectors/PrivateStudentRoute";
 import EmployeeLogin from "../pages/auth/employee/EmployeeLogin";
+import StudentLogin from "../pages/auth/student/StudentLogin";
 import DashboardHomePage from "../pages/dashboard/DashboardHome";
 import Home from "../pages/Home";
 import EmployeeProfilePage from "../pages/dashboard/employee/EmployeeProfilePage";
@@ -29,6 +32,24 @@ import AttendanceDashboard from "../pages/dashboard/AttendanceDashboard";
 import TraineeAssessmentReport from "../pages/dashboard/ReportDisplay";
 import ClassBulkReportsViewer from "../pages/dashboard/ClassBulkReportsViewer";
 import DisciplineEntryPage from "../pages/dashboard/DisciplineEntryPage";
+import ExamManagement from "../pages/dashboard/exam/ExamManagement";
+import ExamCreator from "../pages/dashboard/exam/ExamCreator";
+import QuestionEditor from "../pages/dashboard/exam/QuestionEditor";
+import GradingDashboard from "../pages/dashboard/exam/GradingDashboard";
+import ExamResponses from "../pages/dashboard/exam/ExamResponses";
+import PublicExamParticipants from "../pages/dashboard/exam/PublicExamParticipants";
+import TakeExam from "../pages/dashboard/exam/TakeExam";
+import StudentExamList from "../pages/dashboard/exam/StudentExamList";
+import ExamResult from "../pages/dashboard/exam/ExamResult";
+
+// Student Dashboard Pages
+import StudentDashboardHome from "../pages/dashboard/student/StudentDashboardHome";
+import StudentResults from "../pages/dashboard/student/StudentResults";
+
+// Public Exam Pages
+import PublicExam from "../pages/public/PublicExam";
+import PublicExamResult from "../pages/public/PublicExamResult";
+import PublicExamLookup from "../pages/public/PublicExamLookup";
 
 const LoadingSpinner = () => (
 
@@ -89,7 +110,17 @@ const router = createBrowserRouter([
     { path: "marks-entry", element: <MarksEntryPage /> },
     { path: "report", element: <TraineeAssessmentReport /> },
     { path: "class-report/:classId", element: <ClassBulkReportsViewer /> },
- 
+    { path: "exams", element: <ExamManagement /> },
+    { path: "exams/create", element: <ExamCreator /> },
+    { path: "exams/:examId", element: <Navigate to="edit" replace /> },
+    { path: "exams/:examId/edit", element: <ExamCreator /> },
+    { path: "exams/:examId/questions", element: <QuestionEditor /> },
+    { path: "exams/:examId/responses", element: <ExamResponses /> },
+    { path: "exams/:examId/grading", element: <GradingDashboard /> },
+    { path: "exams/:examId/participants", element: <PublicExamParticipants /> },
+    // Student exam routes (accessible by students)
+    { path: "student-exams", element: <StudentExamList /> },
+    { path: "student-exams/:examId/take", element: <TakeExam /> },
         ],
       },
       // Any unknown /employee/... path (including unknown dashboard URLs) should render
@@ -108,12 +139,61 @@ const router = createBrowserRouter([
   ],
 },
 
+  // Student Dashboard Routes
+  {
+    path: "/student",
+    element: (
+      <PrivateStudentRoute>
+        <Outlet />
+      </PrivateStudentRoute>
+    ),
+    children: [
+      {
+        index: true,
+        element: <Navigate to="/student/dashboard" replace />,
+      },
+      {
+        path: "dashboard",
+        element: (
+          <SuspenseWrapper>
+            <StudentDashboardLayout />
+          </SuspenseWrapper>
+        ),
+        children: [
+          { index: true, element: <StudentDashboardHome /> },
+          { path: "exams", element: <StudentExamList /> },
+          { path: "exams/:examId/take", element: <TakeExam /> },
+          { path: "exams/attempt/:attemptId/result", element: <ExamResult /> },
+          { path: "results", element: <StudentResults /> },
+        ],
+      },
+      { path: "*", element: <NotFound /> },
+    ],
+  },
+
   {
     path: "/auth",
     element: <Outlet />,
-    children: [{ path: "employee/login", element: <EmployeeLogin /> }],
+    children: [
+      { path: "employee/login", element: <EmployeeLogin /> },
+      { path: "student/login", element: <StudentLogin /> },
+    ],
   },
- 
+
+  // Public Exam Routes (no authentication required)
+  {
+    path: "/public/exam/:uuid",
+    element: <PublicExam />,
+  },
+  {
+    path: "/public/exam/:uuid/result/:attemptId",
+    element: <PublicExamResult />,
+  },
+  {
+    path: "/public/exam-lookup",
+    element: <PublicExamLookup />,
+  },
+
   {
     path: "*",
     element: <NotFound />,

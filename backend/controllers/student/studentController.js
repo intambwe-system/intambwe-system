@@ -58,49 +58,28 @@ const studentController = {
         }
       }
 
-      // Generate password
-      const generatedPassword =  generateSecurePassword(12);
-      console.log(generatedPassword);
-      console.log( studentData.std_email);
-      
-
-      // Send welcome email before creating student
-      try {
-        await emailService.sendEmail({
-          to: studentData.std_email,
-          subject: 'Welcome to Our School - Your Student Account',
-          template: 'student-welcome',
-          company: process.env.EMAIL_FROM_NAME || 'School Admin',
-          data: {
-            name: `${studentData.std_fname} ${studentData.std_lname}`,
-            email: studentData.std_email,
-            password: generatedPassword,
-            loginUrl: process.env.FRONTEND_URL || 'https://yourapp.com/login',
-            year: new Date().getFullYear(),
-          },
-        });
-      } catch (emailError) {
-        console.error('Error sending student welcome email:', emailError);
-        return res.status(500).json({
-          success: false,
-          message: 'Failed to send welcome email. Student not created.',
-          error: emailError.message,
-        });
-      }
+      // Generate temporary password (8 characters for easy admin sharing)
+      // const tempPassword = generateSecurePassword(8);
+      const tempPassword = 'student123';
 
       // Hash password before saving
-      const hashedPassword = await bcrypt.hash(generatedPassword, 10);
+      const hashedPassword = await bcrypt.hash(tempPassword, 10);
 
-      // Create student
+      // Create student with temp password (no email sent)
       const newStudent = await Student.create({
         ...studentData,
         std_password: hashedPassword,
+        temp_password: tempPassword, // Store plain text for admin reference
+        password_changed: false, // Will be set to true when student changes password
       });
 
       return res.status(201).json({
         success: true,
-        message: 'Student created successfully',
-        data: newStudent,
+        message: 'Student created successfully. Temporary password generated.',
+        data: {
+          ...newStudent.toJSON(),
+          temp_password: tempPassword, // Return temp password for admin to share with student
+        },
       });
 
     } catch (error) {

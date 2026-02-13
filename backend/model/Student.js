@@ -12,7 +12,7 @@ const Student = sequelize.define('Student', {
     type: DataTypes.STRING(200),
     allowNull: true
   },
-  
+
   // Personal Information
   std_fname: {
     type: DataTypes.STRING(50),
@@ -62,9 +62,18 @@ const Student = sequelize.define('Student', {
   },
   std_password: {
     type: DataTypes.STRING(255),
-    allowNull: false
+    allowNull: true
   },
-  
+  password_changed: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
+  },
+  temp_password: {
+    type: DataTypes.STRING(50),
+    allowNull: true
+  },
+
   // Contact Information
   std_phone: {
     type: DataTypes.STRING(20),
@@ -84,7 +93,7 @@ const Student = sequelize.define('Student', {
     defaultValue: 'Rwanda'
   },
 
-  
+
   // Parent/Guardian Information
   father_name: {
     type: DataTypes.STRING(100),
@@ -99,7 +108,7 @@ const Student = sequelize.define('Student', {
     type: DataTypes.STRING(50),
     allowNull: true
   },
-  
+
   mother_name: {
     type: DataTypes.STRING(100),
     allowNull: true
@@ -113,7 +122,7 @@ const Student = sequelize.define('Student', {
     type: DataTypes.STRING(50),
     allowNull: true
   },
-  
+
   guardian_name: {
     type: DataTypes.STRING(100),
     allowNull: true
@@ -122,12 +131,12 @@ const Student = sequelize.define('Student', {
     type: DataTypes.STRING(20),
     allowNull: true
   },
-  
+
   guardian_address: {
     type: DataTypes.STRING(255),
     allowNull: true
   },
-  
+
   // Emergency Contact
   emergency_contact_name: {
     type: DataTypes.STRING(100),
@@ -138,7 +147,7 @@ const Student = sequelize.define('Student', {
     allowNull: true
   },
 
-  
+
   // Academic Information
   class_id: {
     type: DataTypes.INTEGER,
@@ -146,6 +155,14 @@ const Student = sequelize.define('Student', {
     references: {
       model: 'Class',
       key: 'class_id'
+    }
+  },
+  dpt_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'Department',
+      key: 'dpt_id'
     }
   },
   academic_year: {
@@ -166,11 +183,11 @@ const Student = sequelize.define('Student', {
     allowNull: true
   },
   // document
-   previous_school_report: {
+  previous_school_report: {
     type: DataTypes.STRING(255),
     allowNull: true
   },
-   qr_code: {
+  qr_code: {
     type: DataTypes.STRING(255),
     allowNull: true
   },
@@ -182,7 +199,7 @@ const Student = sequelize.define('Student', {
     type: DataTypes.TEXT,
     allowNull: true
   },
-  
+
   // Health Information
   medical_conditions: {
     type: DataTypes.TEXT,
@@ -210,9 +227,9 @@ const Student = sequelize.define('Student', {
     allowNull: true,
     unique: true
   },
- 
-  
- 
+
+
+
   notes: {
     type: DataTypes.TEXT,
     allowNull: true
@@ -227,7 +244,7 @@ const Student = sequelize.define('Student', {
     allowNull: false,
     defaultValue: DataTypes.NOW
   }
-  
+
 }, {
   tableName: 'Student',
   timestamps: true,
@@ -246,7 +263,7 @@ const Student = sequelize.define('Student', {
       name: 'idx_student_admission',
       fields: ['admission_number']
     },
- 
+
   ]
 });
 

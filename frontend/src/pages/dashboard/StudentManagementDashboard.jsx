@@ -11,6 +11,7 @@ import studentService from '../../services/studentService';
 import classService from '../../services/classService';
 import { useNavigate } from 'react-router-dom';
 import { useEmployeeAuth } from '../../contexts/EmployeeAuthContext';
+import UpdateStudentModal from '../../components/dashboard/student/UpdateStudentModal';
 
 const StudentManagementDashboard = () => {
   const [students, setStudents] = useState([]);
@@ -163,18 +164,6 @@ const StudentManagementDashboard = () => {
 
   const handleEdit = (student) => {
     setSelectedStudent(student);
-    const cls = classes.find(c => c.class_id === student.class_id);
-    setSelectedClass(cls || null);
-    setFormData({
-      std_fname: student.std_fname || '',
-      std_lname: student.std_lname || '',
-      std_email: student.std_email || '',
-      std_phoneNumber: student.std_phoneNumber || '',
-      std_dob: student.std_dob?.split('T')[0] || '',
-      std_gender: student.std_gender || 'Male',
-      class_id: student.class_id || ''
-    });
-    setFormError('');
     setShowUpdateModal(true);
   };
 
@@ -694,9 +683,9 @@ const StudentManagementDashboard = () => {
           )}
         </AnimatePresence>
 
-        {/* Add / Edit Modal */}
+        {/* Add Modal (Quick Add) */}
         <AnimatePresence>
-          {(showAddModal || showUpdateModal) && (
+          {showAddModal && (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -704,15 +693,13 @@ const StudentManagementDashboard = () => {
               className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
             >
               <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl max-h-[90vh] overflow-y-auto">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  {showAddModal ? 'Add New Student' : 'Update Student'}
-                </h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Add Student</h3>
                 {formError && (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm mb-4">
                     {formError}
                   </div>
                 )}
-                <form onSubmit={showAddModal ? handleCreate : handleUpdate} className="space-y-4">
+                <form onSubmit={handleCreate} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
@@ -796,7 +783,6 @@ const StudentManagementDashboard = () => {
                       whileHover={{ scale: 1.05 }}
                       onClick={() => {
                         setShowAddModal(false);
-                        setShowUpdateModal(false);
                         setFormError('');
                       }}
                       className="px-4 py-2 text-sm border border-gray-200 rounded hover:bg-gray-50"
@@ -809,12 +795,26 @@ const StudentManagementDashboard = () => {
                       disabled={operationLoading}
                       className="px-4 py-2 text-sm bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50"
                     >
-                      {operationLoading ? 'Saving...' : (showAddModal ? 'Create Student' : 'Update Student')}
+                      {operationLoading ? 'Saving...' : 'Create Student'}
                     </motion.button>
                   </div>
                 </form>
               </div>
             </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Update Student Modal (Comprehensive Form) */}
+        <AnimatePresence>
+          {showUpdateModal && selectedStudent && (
+            <UpdateStudentModal
+              student={selectedStudent}
+              onClose={() => {
+                setShowUpdateModal(false);
+                setSelectedStudent(null);
+              }}
+              onSuccess={loadStudents}
+            />
           )}
         </AnimatePresence>
 

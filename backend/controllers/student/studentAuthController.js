@@ -1,5 +1,5 @@
 // controllers/studentAuthController.js
-const {  Student, Class } = require('../../model');
+const { Student, Class, Department } = require('../../model');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
@@ -37,36 +37,31 @@ const generateStudentRefreshToken = (student) => {
   );
 };
 
+// Cookie settings based on environment
+const isProduction = process.env.NODE_ENV === 'production';
+const cookieSettings = {
+  httpOnly: true,
+  sameSite: isProduction ? "none" : "lax",
+  secure: isProduction, // true in production (HTTPS), false in development (HTTP)
+};
+
 // Helper function to set auth cookies
 const setAuthCookies = (res, accessToken, refreshToken) => {
   res.cookie('StudentAccessToken', accessToken, {
-    httpOnly: true,
-    sameSite: "none",
-    secure: true,
+    ...cookieSettings,
     maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
   });
 
   res.cookie('StudentRefreshToken', refreshToken, {
-    httpOnly: true,
-    sameSite: "none",
-    secure: true,
+    ...cookieSettings,
     maxAge: 1000 * 60 * 60 * 24 * 30 // 30 days
   });
 };
 
 // Helper function to clear auth cookies
 const clearAuthCookies = (res) => {
-  res.clearCookie('StudentAccessToken', {
-    httpOnly: true,
-    sameSite: "none",
-    secure: true
-  });
-
-  res.clearCookie('StudentRefreshToken', {
-    httpOnly: true,
-    sameSite: "none",
-    secure: true
-  });
+  res.clearCookie('StudentAccessToken', cookieSettings);
+  res.clearCookie('StudentRefreshToken', cookieSettings);
 };
 
 const studentAuthController = {
@@ -213,10 +208,11 @@ const studentAuthController = {
       // Hash new password
       const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-      // Update password and mark as activated
-      await student.update({ 
+      // Update password and mark as password changed
+      await student.update({
         std_password: hashedPassword,
-        is_first_login: false
+        password_changed: true,
+        temp_password: null // Clear temp password after successful change
       });
 
       // Generate tokens
@@ -299,6 +295,21 @@ const studentAuthController = {
         });
       }
 
+      // Check if this is first login (password not changed yet)
+      if (!student.password_changed) {
+        return res.status(200).json({
+          success: true,
+          requirePasswordChange: true,
+          message: 'First login detected. Please change your password.',
+          data: {
+            std_id: student.std_id,
+            std_email: student.std_email,
+            std_fname: student.std_fname,
+            std_lname: student.std_lname
+          }
+        });
+      }
+
       // Generate tokens
       const accessToken = generateStudentAccessToken(student);
       const refreshToken = generateStudentRefreshToken(student);
@@ -309,9 +320,11 @@ const studentAuthController = {
       // Prepare student data (exclude password)
       const studentData = student.toJSON();
       delete studentData.std_password;
+      delete studentData.temp_password;
 
       return res.status(200).json({
         success: true,
+        requirePasswordChange: false,
         message: 'Login successful',
         data: {
           student: studentData
@@ -572,8 +585,12 @@ const studentAuthController = {
       // Hash new password
       const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-      // Update password
-      await student.update({ std_password: hashedPassword });
+      // Update password and ensure password_changed is true
+      await student.update({
+        std_password: hashedPassword,
+        password_changed: true,
+        temp_password: null // Clear temp password
+      });
 
       return res.status(200).json({
         success: true,

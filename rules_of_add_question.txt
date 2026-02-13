@@ -1,0 +1,319 @@
+================================================================================
+                    RULES FOR ADDING QUESTIONS (JSON FORMAT)
+                         Intambwe Exam Platform
+================================================================================
+
+This document explains how to create questions using the JSON template format
+for bulk import into the exam system.
+
+--------------------------------------------------------------------------------
+                           GENERAL STRUCTURE
+--------------------------------------------------------------------------------
+
+Questions are provided as a JSON array. Each question is an object with
+specific fields depending on the question type.
+
+File format: .json
+Encoding: UTF-8
+
+
+--------------------------------------------------------------------------------
+                           QUESTION TYPES
+--------------------------------------------------------------------------------
+
+The system supports 6 question types:
+
+1. multiple_choice_single  - Single answer MCQ (radio buttons)
+2. multiple_choice_multiple - Multiple answers MCQ (checkboxes)
+3. true_false              - True/False question
+4. fill_in_blank           - Fill in the blank (auto-graded)
+5. short_answer            - Short text response (manual grading)
+6. essay                   - Long text response (manual grading)
+
+
+--------------------------------------------------------------------------------
+                         REQUIRED FIELDS (ALL TYPES)
+--------------------------------------------------------------------------------
+
+Field           | Type    | Description
+----------------|---------|------------------------------------------------
+question_text   | string  | The question text (required)
+question_type   | string  | One of the 6 types listed above (required)
+points          | number  | Points for correct answer (required, min: 1)
+difficulty      | string  | "easy", "medium", or "hard" (required)
+
+
+--------------------------------------------------------------------------------
+                         OPTIONAL FIELDS (ALL TYPES)
+--------------------------------------------------------------------------------
+
+Field           | Type    | Description
+----------------|---------|------------------------------------------------
+explanation     | string  | Explanation shown after exam (optional)
+image_url       | string  | URL to an image for the question (optional)
+
+
+================================================================================
+                      TYPE-SPECIFIC RULES
+================================================================================
+
+
+--------------------------------------------------------------------------------
+1. MULTIPLE CHOICE SINGLE (multiple_choice_single)
+--------------------------------------------------------------------------------
+
+Description: Student selects ONE correct answer from multiple options.
+Grading: Automatic (full points or zero)
+
+Required fields:
+- options: Array of 2-6 option objects
+
+Option object structure:
+{
+  "option_text": "Answer text",
+  "is_correct": true/false
+}
+
+Rules:
+- EXACTLY ONE option must have is_correct: true
+- Minimum 2 options, maximum 6 options
+- All options must have unique text
+
+Example:
+{
+  "question_text": "What is the capital of France?",
+  "question_type": "multiple_choice_single",
+  "points": 2,
+  "difficulty": "easy",
+  "explanation": "Paris is the capital and largest city of France.",
+  "options": [
+    { "option_text": "London", "is_correct": false },
+    { "option_text": "Paris", "is_correct": true },
+    { "option_text": "Berlin", "is_correct": false },
+    { "option_text": "Madrid", "is_correct": false }
+  ]
+}
+
+
+--------------------------------------------------------------------------------
+2. MULTIPLE CHOICE MULTIPLE (multiple_choice_multiple)
+--------------------------------------------------------------------------------
+
+Description: Student selects ALL correct answers from multiple options.
+Grading: Automatic with partial credit
+
+Required fields:
+- options: Array of 2-6 option objects
+
+Rules:
+- AT LEAST ONE option must have is_correct: true
+- Multiple options can be correct
+- Partial credit: Points are calculated based on correct selections
+  Formula: (correct_selected - incorrect_selected) / total_correct * points
+
+Example:
+{
+  "question_text": "Which of the following are programming languages?",
+  "question_type": "multiple_choice_multiple",
+  "points": 3,
+  "difficulty": "medium",
+  "explanation": "Python and JavaScript are programming languages.",
+  "options": [
+    { "option_text": "Python", "is_correct": true },
+    { "option_text": "HTML", "is_correct": false },
+    { "option_text": "JavaScript", "is_correct": true },
+    { "option_text": "CSS", "is_correct": false }
+  ]
+}
+
+
+--------------------------------------------------------------------------------
+3. TRUE/FALSE (true_false)
+--------------------------------------------------------------------------------
+
+Description: Student answers True or False.
+Grading: Automatic (full points or zero)
+
+Required fields:
+- options: Array of exactly 2 options (True and False)
+
+Rules:
+- Must have EXACTLY 2 options
+- One must be "True", one must be "False"
+- Exactly one must have is_correct: true
+
+Example:
+{
+  "question_text": "The Earth is flat.",
+  "question_type": "true_false",
+  "points": 1,
+  "difficulty": "easy",
+  "explanation": "The Earth is an oblate spheroid.",
+  "options": [
+    { "option_text": "True", "is_correct": false },
+    { "option_text": "False", "is_correct": true }
+  ]
+}
+
+
+--------------------------------------------------------------------------------
+4. FILL IN THE BLANK (fill_in_blank)
+--------------------------------------------------------------------------------
+
+Description: Student types a short answer that is auto-matched.
+Grading: Automatic (case-insensitive matching)
+
+Required fields:
+- correct_answers: Array of acceptable answers (strings)
+
+Rules:
+- Use ____ (four underscores) in question_text to indicate blank
+- Provide multiple variations of correct answer for flexibility
+- Include common misspellings if appropriate
+- Matching is CASE-INSENSITIVE
+
+Example:
+{
+  "question_text": "The chemical symbol for water is ____.",
+  "question_type": "fill_in_blank",
+  "points": 1,
+  "difficulty": "easy",
+  "explanation": "H2O represents two hydrogen atoms bonded to one oxygen.",
+  "correct_answers": ["H2O", "h2o", "H20", "h20"]
+}
+
+
+--------------------------------------------------------------------------------
+5. SHORT ANSWER (short_answer)
+--------------------------------------------------------------------------------
+
+Description: Student writes a brief text response.
+Grading: MANUAL (teacher must grade)
+
+Optional fields:
+- word_limit_min: Minimum word count (number)
+- word_limit_max: Maximum word count (number)
+
+Rules:
+- No options array needed
+- Teacher grades manually after submission
+- Word limits are optional but recommended
+
+Example:
+{
+  "question_text": "Briefly explain what photosynthesis is.",
+  "question_type": "short_answer",
+  "points": 5,
+  "difficulty": "medium",
+  "explanation": "Photosynthesis converts sunlight, water, and CO2 into glucose.",
+  "word_limit_min": 20,
+  "word_limit_max": 100
+}
+
+
+--------------------------------------------------------------------------------
+6. ESSAY (essay)
+--------------------------------------------------------------------------------
+
+Description: Student writes a long-form response.
+Grading: MANUAL (teacher must grade)
+
+Optional fields:
+- word_limit_min: Minimum word count (number)
+- word_limit_max: Maximum word count (number)
+
+Rules:
+- No options array needed
+- Teacher grades manually after submission
+- Typically higher point value
+- Word limits are strongly recommended
+
+Example:
+{
+  "question_text": "Discuss the causes and effects of climate change.",
+  "question_type": "essay",
+  "points": 15,
+  "difficulty": "hard",
+  "word_limit_min": 200,
+  "word_limit_max": 500
+}
+
+
+================================================================================
+                         VALIDATION ERRORS
+================================================================================
+
+Common errors and how to fix them:
+
+Error                               | Solution
+------------------------------------|------------------------------------------
+"question_text is required"         | Add question_text field
+"Invalid question_type"             | Use one of the 6 valid types
+"points must be at least 1"         | Set points to 1 or higher
+"Invalid difficulty"                | Use "easy", "medium", or "hard"
+"options required for MCQ"          | Add options array
+"Exactly one correct answer needed" | Mark exactly one option as is_correct
+"At least one correct answer"       | Mark at least one option as is_correct
+"correct_answers required"          | Add correct_answers array for fill_in_blank
+"Invalid JSON format"               | Check JSON syntax (commas, brackets, quotes)
+
+
+================================================================================
+                         BEST PRACTICES
+================================================================================
+
+1. POINT VALUES
+   - Easy questions: 1-2 points
+   - Medium questions: 2-5 points
+   - Hard questions: 5-15 points
+   - Essays: 10-20 points
+
+2. WRITING GOOD QUESTIONS
+   - Be clear and unambiguous
+   - Avoid double negatives
+   - For MCQ, make distractors plausible
+   - Include explanations for learning value
+
+3. FILL IN BLANK TIPS
+   - Include common alternative spellings
+   - Include both lowercase and uppercase versions
+   - Consider typos for lenient grading
+
+4. ESSAY/SHORT ANSWER TIPS
+   - Set appropriate word limits
+   - Provide clear instructions in question text
+   - Consider creating a grading rubric separately
+
+5. FILE ORGANIZATION
+   - Group questions by topic or difficulty
+   - Test your JSON with a validator before import
+   - Keep backups of question files
+
+
+================================================================================
+                         SAMPLE COMPLETE FILE
+================================================================================
+
+See: questions_template.json
+
+The template file contains examples of all 6 question types ready for import.
+
+
+================================================================================
+                         IMPORTING QUESTIONS
+================================================================================
+
+1. Navigate to Exam Management in employee dashboard
+2. Open the exam you want to add questions to
+3. Click "Import Questions" button
+4. Select your JSON file
+5. Review imported questions
+6. Save changes
+
+Note: Questions are added to the end of the existing question list.
+You can reorder them after import using drag-and-drop.
+
+
+================================================================================
+                              END OF DOCUMENT
+================================================================================

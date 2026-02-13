@@ -1,7 +1,15 @@
 // middleware/studentAuth.js
 const jwt = require('jsonwebtoken');
-const crypto =  require('crypto')
+const crypto = require('crypto');
 const { Student } = require('../model');
+
+// Cookie settings based on environment
+const isProduction = process.env.NODE_ENV === 'production';
+const cookieSettings = {
+  httpOnly: true,
+  sameSite: isProduction ? "none" : "lax",
+  secure: isProduction,
+};
 
 // Verify JWT token and attach student to request
 // Middleware to verify access token and automatically refresh if expired
@@ -85,18 +93,14 @@ const authenticateStudent = (req, res, next) => {
                     const newAccessToken = await generateStudentAccessToken(student);
                     const newRefreshToken = await generateStudentRefreshToken(student);
                    
-                    // Set new cookies with improved settings
+                    // Set new cookies with environment-aware settings
                     res.cookie('StudentAccessToken', newAccessToken, {
-                        httpOnly: true,
-                        sameSite: "none",
-                        secure: true,
+                        ...cookieSettings,
                         maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
                     });
-                   
+
                     res.cookie('StudentRefreshToken', newRefreshToken, {
-                        httpOnly: true,
-                        sameSite: "none",
-                        secure: true,
+                        ...cookieSettings,
                         maxAge: 1000 * 60 * 60 * 24 * 30 // 30 days
                     });
                    
