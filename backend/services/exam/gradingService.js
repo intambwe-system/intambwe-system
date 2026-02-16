@@ -15,7 +15,16 @@ const socketService = require("../socketService");
 const gradeAttempt = async (attemptId) => {
   const attempt = await ExamAttempt.findByPk(attemptId, {
     include: [
-      { model: Exam, as: "exam" },
+      { 
+        model: Exam, 
+        as: "exam",
+        include: [
+          {
+            model: Question,
+            attributes: ['question_id', 'points', 'requires_manual_grading']
+          }
+        ]
+      },
       {
         model: StudentResponse,
         include: [
@@ -33,15 +42,35 @@ const gradeAttempt = async (attemptId) => {
     throw new Error("Attempt not found");
   }
 
+  // Get ALL questions from the exam
+  const allQuestions = attempt.exam.Questions || [];
+  
   let totalScore = 0;
   let maxScore = 0;
   let requiresManualGrading = false;
 
-  // Grade each response
-  for (const response of attempt.StudentResponses) {
-    const question = response.question;
+  // Calculate maxScore from ALL exam questions
+  for (const question of allQuestions) {
     const maxPoints = parseFloat(question.points) || 1;
     maxScore += maxPoints;
+  }
+
+  // Create a map of responses by question_id for easy lookup
+  const responseMap = new Map();
+  for (const response of attempt.StudentResponses) {
+    responseMap.set(response.question_id, response);
+  }
+
+  // Grade each question
+  for (const question of allQuestions) {
+    const maxPoints = parseFloat(question.points) || 1;
+    const response = responseMap.get(question.question_id);
+
+    if (!response) {
+      // Question was not answered - award 0 points
+      // No StudentResponse record exists, so skip updating
+      continue;
+    }
 
     if (question.requires_manual_grading) {
       // Mark for manual grading
@@ -300,19 +329,48 @@ const gradeResponseManually = async (
 const recalculateAttemptScore = async (attemptId) => {
   const attempt = await ExamAttempt.findByPk(attemptId, {
     include: [
-      { model: Exam, as: "exam" },
+      { 
+        model: Exam, 
+        as: "exam",
+        include: [
+          {
+            model: Question,
+            attributes: ['question_id', 'points', 'requires_manual_grading']
+          }
+        ]
+      },
       { model: StudentResponse },
     ],
   });
 
   if (!attempt) return;
 
+  // Get ALL questions from the exam
+  const allQuestions = attempt.exam.Questions || [];
+  
   let totalScore = 0;
   let maxScore = 0;
   let pendingManualGrading = false;
 
+  // Calculate maxScore from ALL exam questions
+  for (const question of allQuestions) {
+    maxScore += parseFloat(question.points) || 0;
+  }
+
+  // Create a map of responses for easy lookup
+  const responseMap = new Map();
   for (const response of attempt.StudentResponses) {
-    maxScore += parseFloat(response.max_points) || 0;
+    responseMap.set(response.question_id, response);
+  }
+
+  // Calculate total score
+  for (const question of allQuestions) {
+    const response = responseMap.get(question.question_id);
+    
+    if (!response) {
+      // Question was not answered - 0 points
+      continue;
+    }
 
     if (response.requires_manual_grading && !response.manually_graded) {
       pendingManualGrading = true;
