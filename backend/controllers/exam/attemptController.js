@@ -429,16 +429,31 @@ const submitExam = async (req, res) => {
     // Auto-grade the exam
     const gradingResult = await gradingService.gradeAttempt(attemptId);
 
+    // Determine final status: if no manual grading needed, mark as graded
+    const finalStatus = gradingResult.requiresManualGrading ? "submitted" : "graded";
+
     // Update attempt
     await attempt.update({
-      status: "submitted",
+      status: finalStatus,
       submitted_at: new Date(),
       time_taken_seconds: timeTaken,
       total_score: gradingResult.totalScore,
+      max_score: gradingResult.maxScore,
       percentage: gradingResult.percentage,
       grade: gradingResult.grade,
       pass_status: gradingResult.passed ? "passed" : "failed",
     });
+
+    // If fully graded (no manual grading needed) and exam has assessment_type, auto-record to marks
+    if (!gradingResult.requiresManualGrading && attempt.exam.assessment_type) {
+      try {
+        const { recordExamScoreToMarks } = require("../../services/marks/examToMarksService");
+        await recordExamScoreToMarks(attemptId);
+      } catch (marksError) {
+        console.error("Error recording exam score to marks:", marksError);
+        // Don't fail submission if marks recording fails
+      }
+    }
 
     // Real-time: notify teachers watching this exam
     const student = await Student.findByPk(attempt.std_id);
@@ -493,7 +508,11 @@ const getAttemptResult = async (req, res) => {
         {
           model: StudentResponse,
           include: [
-            { model: Question, as: "question" },
+            {
+              model: Question,
+              as: "question",
+              include: [{ model: AnswerOption, order: [["option_order", "ASC"]] }],
+            },
             { model: AnswerOption, as: "selectedOption" },
           ],
         },
@@ -551,10 +570,19 @@ const getAttemptResult = async (req, res) => {
 
     // Include detailed responses if allowed
     if (attempt.exam.show_correct_answers || isTeacher) {
-      result.responses = attempt.StudentResponses.map((r) => ({
-        ...r.toJSON(),
-        question: r.question,
-      }));
+      result.responses = attempt.StudentResponses.map((r) => {
+        const response = {
+          ...r.toJSON(),
+          question: r.question,
+        };
+        // Include options array for looking up selected answers (especially for multiple choice)
+        response.options = r.question.AnswerOptions?.map((o) => ({
+          option_id: o.option_id,
+          option_text: o.option_text,
+          is_correct: o.is_correct,
+        }));
+        return response;
+      });
       result.questions = attempt.exam.Questions;
     }
 

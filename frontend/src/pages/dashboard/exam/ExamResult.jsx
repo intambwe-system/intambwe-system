@@ -440,8 +440,8 @@ const ExamResult = () => {
                                     : 'text-red-800'
                               }>
                                 {response.text_response ||
-                                 response.selected_option?.option_text ||
-                                 response.selected_options?.map(o => o.option_text).join(', ') ||
+                                 response.options?.find(o => o.option_id === response.selected_option_id)?.option_text ||
+                                 response.options?.filter(o => response.selected_option_ids?.includes(o.option_id)).map(o => o.option_text).join(', ') ||
                                  'No answer provided'}
                               </p>
                             </div>

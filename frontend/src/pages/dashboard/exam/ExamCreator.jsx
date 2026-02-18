@@ -53,7 +53,9 @@ const ExamCreator = () => {
     allow_non_students: false,
     require_participant_info: true,
     ac_year: '',
-    semester: ''
+    semester: '',
+    // Assessment Type for Marks Recording
+    assessment_type: ''
   });
 
   const [formErrors, setFormErrors] = useState({});
@@ -102,7 +104,8 @@ const ExamCreator = () => {
           allow_non_students: exam.allow_non_students || false,
           require_participant_info: exam.require_participant_info ?? true,
           ac_year: exam.ac_year || '',
-          semester: exam.semester || ''
+          semester: exam.semester || '',
+          assessment_type: exam.assessment_type || ''
         });
       }
     } catch (err) {
@@ -191,7 +194,8 @@ const ExamCreator = () => {
         max_tab_switches: formData.detect_tab_switch ? parseInt(formData.max_tab_switches) : null,
         start_date: formData.start_date || null,
         end_date: formData.end_date || null,
-        access_password: formData.access_password || null
+        access_password: formData.access_password || null,
+        assessment_type: formData.assessment_type || null
       };
 
       let result;
@@ -363,7 +367,7 @@ const ExamCreator = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Exam Mode
@@ -392,6 +396,23 @@ const ExamCreator = () => {
                       placeholder="e.g., 2025-2026"
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Semester
+                    </label>
+                    <select
+                      name="semester"
+                      value={formData.semester}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    >
+                      <option value="">Select Semester</option>
+                      <option value="Semester 1">Semester 1</option>
+                      <option value="Semester 2">Semester 2</option>
+                      <option value="Semester 3">Semester 3</option>
+                    </select>
                   </div>
                 </div>
 
@@ -671,6 +692,35 @@ const ExamCreator = () => {
                       />
                       <span className="text-sm text-gray-700">Show correct answers after submission</span>
                     </label>
+                  </div>
+                </div>
+
+                {/* Assessment Type for Marks Recording */}
+                <div className="bg-green-50 p-5 rounded-xl border border-green-200">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <BookOpen className="w-5 h-5 text-green-600" />
+                    <span className="font-medium text-gray-800">Marks Recording (Optional)</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Assessment Type
+                    </label>
+                    <select
+                      name="assessment_type"
+                      value={formData.assessment_type}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
+                    >
+                      <option value="">None (No auto-recording to marks)</option>
+                      <option value="FA">Formative Assessment (FA) - Multiple allowed per subject</option>
+                      <option value="IA">Integrated Assessment (IA) - Multiple allowed per subject</option>
+                      <option value="CA">Comprehensive Assessment (CA) - Single score per subject</option>
+                    </select>
+                    <p className="text-xs text-gray-500 mt-2">
+                      If set, exam scores will automatically be recorded to student marks when graded.
+                      Make sure to set the subject for this to work correctly.
+                    </p>
                   </div>
                 </div>
               </motion.div>

@@ -42,6 +42,7 @@ const createExam = async (req, res) => {
       is_public,
       allow_non_students,
       require_participant_info,
+      assessment_type,
     } = req.body;
 
     const created_by = req.employee.emp_id;
@@ -77,6 +78,7 @@ const createExam = async (req, res) => {
       is_public: is_public || false,
       allow_non_students: allow_non_students || false,
       require_participant_info: require_participant_info ?? true,
+      assessment_type: assessment_type || null,
     });
 
     res.status(201).json({
@@ -669,6 +671,7 @@ const getAvailableExams = async (req, res) => {
     const exams = await Exam.findAll({
       where: {
         status: "published",
+        is_public: false, // Hide public exams from students - they use the public link instead
         [Op.and]: [
           {
             [Op.or]: [

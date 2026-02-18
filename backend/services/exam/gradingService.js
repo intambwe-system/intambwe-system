@@ -83,7 +83,9 @@ const gradeAttempt = async (attemptId) => {
     }
 
     // Auto-grade based on question type
-    const result = gradeQuestion(question, response);
+    // Use response.question which includes AnswerOptions (allQuestions only has limited attributes)
+    const questionWithOptions = response.question;
+    const result = gradeQuestion(questionWithOptions, response);
 
     await response.update({
       is_correct: result.isCorrect,
@@ -116,6 +118,16 @@ const gradeAttempt = async (attemptId) => {
  * @returns {Object} { isCorrect, pointsEarned }
  */
 const gradeQuestion = (question, response) => {
+  // Safety check: ensure question and AnswerOptions exist
+  if (!question) {
+    console.error("gradeQuestion: question is undefined");
+    return { isCorrect: false, pointsEarned: 0 };
+  }
+  if (!question.AnswerOptions && ["multiple_choice_single", "multiple_choice_multiple", "true_false"].includes(question.question_type)) {
+    console.error("gradeQuestion: AnswerOptions missing for question", question.question_id);
+    return { isCorrect: false, pointsEarned: 0 };
+  }
+
   const maxPoints = parseFloat(question.points) || 1;
 
   switch (question.question_type) {
@@ -150,8 +162,9 @@ const gradeSingleChoice = (question, response, maxPoints) => {
   }
 
   const correctOption = question.AnswerOptions.find((opt) => opt.is_correct);
+  // Use == for type-coerced comparison (selected_option_id may be string, option_id is integer)
   const isCorrect =
-    correctOption && response.selected_option_id === correctOption.option_id;
+    correctOption && response.selected_option_id == correctOption.option_id;
 
   return {
     isCorrect,
@@ -177,11 +190,12 @@ const gradeMultipleChoice = (question, response, maxPoints) => {
   }
 
   // Count correct and incorrect selections
+  // Use == for type-coerced comparison (IDs may be strings or integers)
   let correctSelections = 0;
   let incorrectSelections = 0;
 
   for (const selectedId of selectedIds) {
-    if (correctIds.includes(selectedId)) {
+    if (correctIds.some(id => id == selectedId)) {
       correctSelections++;
     } else {
       incorrectSelections++;
@@ -221,8 +235,9 @@ const gradeTrueFalse = (question, response, maxPoints) => {
   }
 
   const correctOption = question.AnswerOptions.find((opt) => opt.is_correct);
+  // Use == for type-coerced comparison
   const isCorrect =
-    correctOption && response.selected_option_id === correctOption.option_id;
+    correctOption && response.selected_option_id == correctOption.option_id;
 
   return {
     isCorrect,
@@ -441,6 +456,15 @@ const finalizeGrading = async (attemptId, feedback, graderId) => {
     socketService.emitToExamRoom(finalAttempt.exam_id, "grading:attempt_finalized", payload);
     // Notify the student watching their result page
     socketService.emitToAttemptRoom(attemptId, "grading:attempt_finalized", payload);
+
+    // Auto-record exam score to Marks table if assessment_type is set
+    try {
+      const { recordExamScoreToMarks } = require("../marks/examToMarksService");
+      await recordExamScoreToMarks(attemptId);
+    } catch (marksError) {
+      console.error("Error recording exam score to marks:", marksError);
+      // Don't fail grading if marks recording fails
+    }
   }
 
   return attempt;

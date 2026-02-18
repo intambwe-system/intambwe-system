@@ -141,25 +141,45 @@ router.post("/:uuid/start", async (req, res) => {
     // Generate session token
     const sessionToken = crypto.randomBytes(32).toString("hex");
 
-    // Create or find guest participant
+    // Find existing guest by email OR create new one
     let guest;
-    if (exam.require_participant_info) {
-      guest = await GuestParticipant.create({
-        full_name: full_name || "Anonymous",
-        email: email || `guest_${Date.now()}@anonymous.com`,
-        phone: phone || null,
-        session_token: sessionToken,
-        ip_address: req.ip || req.connection.remoteAddress,
-        user_agent: req.get("User-Agent"),
-      });
-    } else {
-      guest = await GuestParticipant.create({
-        full_name: "Anonymous",
-        email: `guest_${Date.now()}@anonymous.com`,
-        session_token: sessionToken,
-        ip_address: req.ip || req.connection.remoteAddress,
-        user_agent: req.get("User-Agent"),
-      });
+
+    // Try to find existing guest by email (for re-attempts)
+    if (exam.require_participant_info && email) {
+      guest = await GuestParticipant.findOne({ where: { email } });
+
+      if (guest) {
+        // Update session token and info for this session
+        await guest.update({
+          full_name: full_name || guest.full_name,
+          phone: phone || guest.phone,
+          session_token: sessionToken,
+          ip_address: req.ip || req.connection.remoteAddress,
+          user_agent: req.get("User-Agent"),
+        });
+      }
+    }
+
+    // Create new guest if not found
+    if (!guest) {
+      if (exam.require_participant_info) {
+        guest = await GuestParticipant.create({
+          full_name: full_name || "Anonymous",
+          email: email || `guest_${Date.now()}@anonymous.com`,
+          phone: phone || null,
+          session_token: sessionToken,
+          ip_address: req.ip || req.connection.remoteAddress,
+          user_agent: req.get("User-Agent"),
+        });
+      } else {
+        guest = await GuestParticipant.create({
+          full_name: "Anonymous",
+          email: `guest_${Date.now()}@anonymous.com`,
+          session_token: sessionToken,
+          ip_address: req.ip || req.connection.remoteAddress,
+          user_agent: req.get("User-Agent"),
+        });
+      }
     }
 
     // Check existing attempts by this guest

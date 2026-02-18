@@ -172,6 +172,14 @@ const Exam = sequelize.define(
       allowNull: true,
     },
 
+    // Assessment Type for Marks Integration
+    assessment_type: {
+      type: DataTypes.ENUM("FA", "IA", "CA"),
+      allowNull: true,
+      defaultValue: null,
+      comment: "Assessment type: FA=Formative, IA=Integrated, CA=Comprehensive",
+    },
+
     // Statistics
     attempt_count: {
       type: DataTypes.INTEGER,
