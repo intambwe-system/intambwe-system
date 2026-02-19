@@ -68,6 +68,29 @@ export const deletePublicExamAttempt = async (examId, attemptId) => {
   }
 };
 
+// ============================================
+// STUDENT EXAM PARTICIPANT MANAGEMENT
+// ============================================
+
+export const getStudentExamParticipants = async (examId, filters = {}) => {
+  try {
+    const params = new URLSearchParams(filters).toString();
+    const response = await api.get(`/exam/${examId}/student-participants?${params}`);
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to fetch student participants");
+  }
+};
+
+export const deleteStudentExamAttempt = async (examId, attemptId) => {
+  try {
+    const response = await api.delete(`/exam/${examId}/student-participants/${attemptId}`);
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to delete student attempt");
+  }
+};
+
 export const lookupPublicExams = async (email, phone) => {
   try {
     const params = {};
@@ -355,6 +378,20 @@ export const submitExam = async (attemptId) => {
 };
 
 /**
+ * Submit sealed exam (for offline submission with integrity verification)
+ * @param {number} attemptId - The attempt ID
+ * @param {Object} sealedPayload - The sealed data with responses, timestamp, and hash
+ */
+export const submitSealedExam = async (attemptId, sealedPayload) => {
+  try {
+    const response = await api.post(`/student/exam/attempt/${attemptId}/submit-sealed`, sealedPayload);
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to submit sealed exam");
+  }
+};
+
+/**
  * Get attempt result
  */
 export const getAttemptResult = async (attemptId) => {
@@ -463,6 +500,197 @@ export const getGradingStats = async (examId) => {
   }
 };
 
+// ============================================
+// SEALED EXAM & RESUME REQUEST (Student)
+// ============================================
+
+/**
+ * Check for sealed unsubmitted exams (student)
+ */
+export const checkSealedExams = async () => {
+  try {
+    const response = await api.get("/student/exam/check-sealed");
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to check sealed exams");
+  }
+};
+
+/**
+ * Seal an exam attempt (save to server)
+ */
+export const sealExamAttempt = async (attemptId, sealedData) => {
+  try {
+    const response = await api.post(`/student/exam/attempt/${attemptId}/seal`, sealedData);
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to seal exam");
+  }
+};
+
+/**
+ * Auto-submit a sealed exam
+ */
+export const autoSubmitSealedExam = async (attemptId) => {
+  try {
+    const response = await api.post(`/student/exam/attempt/${attemptId}/auto-submit`);
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to auto-submit sealed exam");
+  }
+};
+
+/**
+ * Create a resume request (student)
+ */
+export const createResumeRequest = async (attemptId, timeRemaining) => {
+  try {
+    const response = await api.post("/student/exam/resume-request", {
+      attempt_id: attemptId,
+      time_remaining_seconds: timeRemaining,
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to create resume request");
+  }
+};
+
+/**
+ * Check resume request status (student)
+ */
+export const getResumeRequestStatus = async (requestId) => {
+  try {
+    const response = await api.get(`/student/exam/resume-request/${requestId}/status`);
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to get request status");
+  }
+};
+
+// ============================================
+// SEALED EXAM & RESUME REQUEST (Public/Guest)
+// ============================================
+
+/**
+ * Check for sealed unsubmitted exams (public, by email)
+ */
+export const checkSealedExamsPublic = async (email) => {
+  try {
+    const response = await api.get(`/public/exam/check-sealed/${encodeURIComponent(email)}`);
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to check sealed exams");
+  }
+};
+
+/**
+ * Seal an exam attempt (public)
+ */
+export const sealExamAttemptPublic = async (attemptId, sealedData) => {
+  try {
+    const response = await api.post(`/public/exam/attempt/${attemptId}/seal`, sealedData);
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to seal exam");
+  }
+};
+
+/**
+ * Auto-submit a sealed exam (public)
+ */
+export const autoSubmitSealedExamPublic = async (attemptId, sessionToken) => {
+  try {
+    const response = await api.post(`/public/exam/attempt/${attemptId}/auto-submit`, {
+      session_token: sessionToken,
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to auto-submit sealed exam");
+  }
+};
+
+/**
+ * Create a resume request (public)
+ */
+export const createResumeRequestPublic = async (attemptId, sessionToken, timeRemaining) => {
+  try {
+    const response = await api.post("/public/exam/resume-request", {
+      attempt_id: attemptId,
+      session_token: sessionToken,
+      time_remaining_seconds: timeRemaining,
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to create resume request");
+  }
+};
+
+/**
+ * Check resume request status (public)
+ */
+export const getResumeRequestStatusPublic = async (requestUuid, sessionToken) => {
+  try {
+    const response = await api.get(`/public/exam/resume-request/${requestUuid}`, {
+      params: { session_token: sessionToken },
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to get request status");
+  }
+};
+
+// ============================================
+// RESUME REQUESTS (Teacher)
+// ============================================
+
+/**
+ * Get pending resume requests count (for badge)
+ */
+export const getResumeRequestsCount = async () => {
+  try {
+    const response = await api.get("/exam/resume-requests/count");
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to get count");
+  }
+};
+
+/**
+ * Get pending resume requests
+ */
+export const getPendingResumeRequests = async () => {
+  try {
+    const response = await api.get("/exam/resume-requests/pending");
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to get requests");
+  }
+};
+
+/**
+ * Approve a resume request
+ */
+export const approveResumeRequest = async (requestId) => {
+  try {
+    const response = await api.post(`/exam/resume-requests/${requestId}/approve`);
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to approve request");
+  }
+};
+
+/**
+ * Decline a resume request
+ */
+export const declineResumeRequest = async (requestId, reason) => {
+  try {
+    const response = await api.post(`/exam/resume-requests/${requestId}/decline`, { reason });
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to decline request");
+  }
+};
+
 export default {
   // Exam Management
   createExam,
@@ -492,6 +720,7 @@ export default {
   submitResponse,
   saveResponse,
   submitExam,
+  submitSealedExam,
   getAttemptResult,
   logTabSwitch,
   getAllResults,
@@ -502,4 +731,30 @@ export default {
   gradeResponse,
   finalizeGrading,
   getGradingStats,
+
+  // Participants
+  getPublicExamParticipants,
+  deletePublicExamAttempt,
+  getStudentExamParticipants,
+  deleteStudentExamAttempt,
+
+  // Sealed Exam & Resume (Student)
+  checkSealedExams,
+  sealExamAttempt,
+  autoSubmitSealedExam,
+  createResumeRequest,
+  getResumeRequestStatus,
+
+  // Sealed Exam & Resume (Public)
+  checkSealedExamsPublic,
+  sealExamAttemptPublic,
+  autoSubmitSealedExamPublic,
+  createResumeRequestPublic,
+  getResumeRequestStatusPublic,
+
+  // Resume Requests (Teacher)
+  getResumeRequestsCount,
+  getPendingResumeRequests,
+  approveResumeRequest,
+  declineResumeRequest,
 };

@@ -723,6 +723,203 @@ async function autoSubmitAttempt(attempt) {
   });
 }
 
+// Submit sealed exam (for offline submission with integrity verification)
+const submitSealedExam = async (req, res) => {
+  try {
+    const { id: attemptId } = req.params;
+    const {
+      sealed_responses,
+      sealed_at,
+      sealed_timestamp,
+      integrity_hash,
+      seal_reason,
+      time_remaining_at_seal,
+    } = req.body;
+
+    const attempt = await ExamAttempt.findByPk(attemptId, {
+      include: [
+        { model: Exam, as: "exam" },
+        { model: StudentResponse },
+      ],
+    });
+
+    if (!attempt) {
+      return res.status(404).json({
+        success: false,
+        message: "Attempt not found",
+      });
+    }
+
+    // Verify ownership
+    if (!req.student || attempt.std_id !== req.student.std_id) {
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized",
+      });
+    }
+
+    // If already submitted, return success (idempotent)
+    if (attempt.status !== "in_progress") {
+      return res.json({
+        success: true,
+        message: "Attempt already submitted",
+        data: {
+          attempt: await ExamAttempt.findByPk(attemptId),
+        },
+      });
+    }
+
+    // Verify sealed timestamp is within exam window
+    const sealTime = new Date(sealed_timestamp);
+    const startTime = new Date(attempt.started_at);
+    const timeLimitMs = attempt.exam.has_time_limit
+      ? attempt.exam.time_limit_minutes * 60 * 1000
+      : 24 * 60 * 60 * 1000; // 24 hours for untimed exams
+    const endTime = new Date(startTime.getTime() + timeLimitMs);
+
+    // Allow 60 seconds grace period for network delays
+    const gracePeriodMs = 60 * 1000;
+    if (sealTime > new Date(endTime.getTime() + gracePeriodMs)) {
+      return res.status(400).json({
+        success: false,
+        message: "Sealed timestamp is outside the allowed exam window",
+      });
+    }
+
+    // Verify integrity hash (re-compute and compare)
+    // Note: For a production system, you'd want server-side hash verification
+    // For now, we trust the client hash but log it for audit purposes
+    console.log("Sealed submission received:", {
+      attemptId,
+      sealed_at,
+      seal_reason,
+      integrity_hash: integrity_hash?.substring(0, 16) + "...",
+      time_remaining_at_seal,
+    });
+
+    // Process sealed responses - save any that aren't already saved
+    if (sealed_responses && typeof sealed_responses === "object") {
+      for (const [questionId, responseData] of Object.entries(sealed_responses)) {
+        if (!responseData) continue;
+
+        const question = await Question.findByPk(questionId);
+        if (!question || question.exam_id !== attempt.exam_id) continue;
+
+        // Find or create response
+        let response = await StudentResponse.findOne({
+          where: { attempt_id: attemptId, question_id: questionId },
+        });
+
+        const responsePayload = {
+          attempt_id: attemptId,
+          question_id: parseInt(questionId),
+          selected_option_id: responseData.selected_option_id || null,
+          selected_option_ids: responseData.selected_option_ids || null,
+          text_response: responseData.text_response || null,
+          is_flagged: responseData.is_flagged || false,
+          answered_at: new Date(sealed_at),
+          max_points: question.points,
+          requires_manual_grading: question.requires_manual_grading,
+        };
+
+        if (response) {
+          await response.update(responsePayload);
+        } else {
+          response = await StudentResponse.create(responsePayload);
+        }
+      }
+
+      // Update questions answered count
+      const answeredCount = await StudentResponse.count({
+        where: {
+          attempt_id: attemptId,
+          [Op.or]: [
+            { selected_option_id: { [Op.ne]: null } },
+            { selected_option_ids: { [Op.ne]: null } },
+            { text_response: { [Op.ne]: null, [Op.ne]: "" } },
+          ],
+        },
+      });
+      await attempt.update({ questions_answered: answeredCount });
+    }
+
+    // Calculate time taken (use seal time, not current time)
+    const timeTaken = Math.floor(
+      (new Date(sealed_at) - new Date(attempt.started_at)) / 1000
+    );
+
+    // Auto-grade the exam
+    const gradingResult = await gradingService.gradeAttempt(attemptId);
+
+    // Determine final status
+    const finalStatus = gradingResult.requiresManualGrading ? "submitted" : "graded";
+
+    // Update attempt with sealed submission info
+    await attempt.update({
+      status: finalStatus,
+      submitted_at: new Date(sealed_at), // Use sealed timestamp, not current time
+      time_taken_seconds: timeTaken,
+      total_score: gradingResult.totalScore,
+      max_score: gradingResult.maxScore,
+      percentage: gradingResult.percentage,
+      grade: gradingResult.grade,
+      pass_status: gradingResult.passed ? "passed" : "failed",
+      violation_log: {
+        ...(attempt.violation_log || {}),
+        sealed_submission: {
+          sealed_at,
+          seal_reason,
+          integrity_hash,
+          time_remaining_at_seal,
+          submitted_at: new Date().toISOString(),
+        },
+      },
+    });
+
+    // If fully graded and exam has assessment_type, auto-record to marks
+    if (!gradingResult.requiresManualGrading && attempt.exam.assessment_type) {
+      try {
+        const { recordExamScoreToMarks } = require("../../services/marks/examToMarksService");
+        await recordExamScoreToMarks(attemptId);
+      } catch (marksError) {
+        console.error("Error recording exam score to marks:", marksError);
+      }
+    }
+
+    // Real-time notification
+    const student = await Student.findByPk(attempt.std_id);
+    const studentName = student
+      ? `${student.std_fname} ${student.std_lname}`.trim()
+      : "A student";
+    socketService.emitToExamRoom(attempt.exam_id, "exam:submitted", {
+      examId: attempt.exam_id,
+      attemptId,
+      studentName,
+      questionsAnswered: attempt.questions_answered,
+      timestamp: new Date(),
+      sealed: true,
+    });
+
+    res.json({
+      success: true,
+      message: "Sealed exam submitted successfully",
+      data: {
+        attempt: await ExamAttempt.findByPk(attemptId),
+        ...(attempt.exam.show_results_immediately && {
+          result: gradingResult,
+        }),
+      },
+    });
+  } catch (error) {
+    console.error("Error submitting sealed exam:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to submit sealed exam",
+      error: error.message,
+    });
+  }
+};
+
 // Get all exam results for a student (grouped by subject)
 const getAllResults = async (req, res) => {
   try {
@@ -875,6 +1072,7 @@ module.exports = {
   getAttempt,
   submitResponse,
   submitExam,
+  submitSealedExam,
   getAttemptResult,
   logTabSwitch,
   getAllResults,

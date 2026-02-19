@@ -13,6 +13,8 @@ const {
 } = require("../../model");
 const gradingService = require("../../services/exam/gradingService");
 const socketService = require("../../services/socketService");
+const autoSubmitController = require("../../controllers/exam/autoSubmitController");
+const resumeRequestController = require("../../controllers/exam/resumeRequestController");
 
 // ============================================
 // PUBLIC EXAM ROUTES (No Authentication Required)
@@ -779,5 +781,39 @@ router.get("/lookup/search", async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to look up exam attempts" });
   }
 });
+
+// ============================================
+// SEALED EXAM & RESUME REQUEST ROUTES
+// ============================================
+
+// Check for sealed unsubmitted exams by email
+router.get(
+  "/check-sealed/:email",
+  autoSubmitController.checkSealedExamsPublic
+);
+
+// Save sealed state to server
+router.post(
+  "/attempt/:id/seal",
+  autoSubmitController.sealExamAttemptPublic
+);
+
+// Auto-submit a sealed exam
+router.post(
+  "/attempt/:id/auto-submit",
+  autoSubmitController.autoSubmitSealedPublic
+);
+
+// Create resume request
+router.post(
+  "/resume-request",
+  resumeRequestController.createResumeRequestGuest
+);
+
+// Check resume request status
+router.get(
+  "/resume-request/:uuid",
+  resumeRequestController.getRequestStatusGuest
+);
 
 module.exports = router;

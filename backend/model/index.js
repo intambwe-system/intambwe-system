@@ -22,6 +22,7 @@ const AnswerOption = require("./AnswerOption");
 const ExamAttempt = require("./ExamAttempt");
 const StudentResponse = require("./StudentResponse");
 const GuestParticipant = require("./GuestParticipant");
+const ResumeRequest = require("./ResumeRequest");
 
 // Define Associations
 
@@ -211,6 +212,19 @@ StudentResponse.belongsTo(Question, { foreignKey: "question_id", as: "question" 
 StudentResponse.belongsTo(AnswerOption, { foreignKey: "selected_option_id", as: "selectedOption" });
 StudentResponse.belongsTo(Employee, { foreignKey: "grader_id", as: "grader" });
 
+// ResumeRequest Associations
+ResumeRequest.belongsTo(Exam, { foreignKey: "exam_id", as: "exam" });
+ResumeRequest.belongsTo(ExamAttempt, { foreignKey: "attempt_id", as: "attempt" });
+ResumeRequest.belongsTo(Student, { foreignKey: "std_id", as: "student" });
+ResumeRequest.belongsTo(GuestParticipant, { foreignKey: "guest_id", as: "guest" });
+ResumeRequest.belongsTo(Employee, { foreignKey: "responded_by", as: "responder" });
+
+Exam.hasMany(ResumeRequest, { foreignKey: "exam_id", onDelete: "CASCADE" });
+ExamAttempt.hasMany(ResumeRequest, { foreignKey: "attempt_id", onDelete: "CASCADE" });
+Student.hasMany(ResumeRequest, { foreignKey: "std_id", onDelete: "CASCADE" });
+GuestParticipant.hasMany(ResumeRequest, { foreignKey: "guest_id", onDelete: "CASCADE" });
+Employee.hasMany(ResumeRequest, { foreignKey: "responded_by", as: "respondedRequests", onDelete: "SET NULL" });
+
 // Sync database
 const syncDatabase = async () => {
   try {
@@ -250,4 +264,5 @@ module.exports = {
   ExamAttempt,
   StudentResponse,
   GuestParticipant,
+  ResumeRequest,
 };

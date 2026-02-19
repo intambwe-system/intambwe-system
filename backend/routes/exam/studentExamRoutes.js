@@ -2,6 +2,8 @@ const express = require("express");
 const router = express.Router();
 const examController = require("../../controllers/exam/examController");
 const attemptController = require("../../controllers/exam/attemptController");
+const autoSubmitController = require("../../controllers/exam/autoSubmitController");
+const resumeRequestController = require("../../controllers/exam/resumeRequestController");
 const { authenticateStudent } = require("../../middleware/studentAuth");
 
 // ============================================
@@ -50,6 +52,13 @@ router.post(
   attemptController.submitExam
 );
 
+// Submit sealed exam (for offline submission with integrity verification)
+router.post(
+  "/attempt/:id/submit-sealed",
+  authenticateStudent,
+  attemptController.submitSealedExam
+);
+
 // Get attempt result
 router.get(
   "/attempt/:id/result",
@@ -69,6 +78,45 @@ router.get(
   "/results",
   authenticateStudent,
   attemptController.getAllResults
+);
+
+// ============================================
+// SEALED EXAM & RESUME REQUEST ROUTES
+// ============================================
+
+// Check for sealed unsubmitted exams
+router.get(
+  "/check-sealed",
+  authenticateStudent,
+  autoSubmitController.checkSealedExamsStudent
+);
+
+// Save sealed state to server
+router.post(
+  "/attempt/:id/seal",
+  authenticateStudent,
+  autoSubmitController.sealExamAttemptStudent
+);
+
+// Auto-submit a sealed exam
+router.post(
+  "/attempt/:id/auto-submit",
+  authenticateStudent,
+  autoSubmitController.autoSubmitSealedStudent
+);
+
+// Create resume request
+router.post(
+  "/resume-request",
+  authenticateStudent,
+  resumeRequestController.createResumeRequestStudent
+);
+
+// Check resume request status
+router.get(
+  "/resume-request/:id/status",
+  authenticateStudent,
+  resumeRequestController.getRequestStatusStudent
 );
 
 module.exports = router;

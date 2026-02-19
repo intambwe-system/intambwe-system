@@ -25,4 +25,62 @@ const emitToAttemptRoom = (attemptId, event, data) => {
   }
 };
 
-module.exports = { setIO, getIO, emitToExamRoom, emitToAttemptRoom };
+/** Emit to teachers watching resume requests for a specific exam */
+const emitResumeRequestToExam = (examId, event, data) => {
+  if (io) {
+    io.to(`resume:exam:${examId}`).emit(event, data);
+  }
+};
+
+/** Emit to all teachers watching resume requests */
+const emitToAllTeachers = (event, data) => {
+  if (io) {
+    io.to("resume:teachers").emit(event, data);
+  }
+};
+
+/** Emit to a specific waiting user (by request ID) */
+const emitToResumeRequest = (requestId, event, data) => {
+  if (io) {
+    io.to(`resume:request:${requestId}`).emit(event, data);
+  }
+};
+
+/** Emit a new resume request to both exam room and all teachers */
+const notifyNewResumeRequest = (examId, requestData) => {
+  const event = "resume:new_request";
+  emitResumeRequestToExam(examId, event, requestData);
+  emitToAllTeachers(event, requestData);
+};
+
+/** Notify user that their resume request was approved */
+const notifyResumeApproved = (requestId, approvalData) => {
+  emitToResumeRequest(requestId, "resume:approved", approvalData);
+};
+
+/** Notify user that their resume request was declined */
+const notifyResumeDeclined = (requestId, declineData) => {
+  emitToResumeRequest(requestId, "resume:declined", declineData);
+};
+
+/** Notify user that their resume request expired */
+const notifyResumeExpired = (requestId) => {
+  emitToResumeRequest(requestId, "resume:expired", {
+    message: "Your resume request has expired. Please contact your instructor.",
+  });
+};
+
+module.exports = {
+  setIO,
+  getIO,
+  emitToExamRoom,
+  emitToAttemptRoom,
+  // Resume request helpers
+  emitResumeRequestToExam,
+  emitToAllTeachers,
+  emitToResumeRequest,
+  notifyNewResumeRequest,
+  notifyResumeApproved,
+  notifyResumeDeclined,
+  notifyResumeExpired,
+};

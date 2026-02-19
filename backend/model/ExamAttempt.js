@@ -159,6 +159,28 @@ const ExamAttempt = sequelize.define(
       allowNull: true,
       comment: "Array of question IDs in the order shown to student",
     },
+
+    // Sealed exam state (for offline/interrupted submissions)
+    is_sealed: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+      comment: "True if exam was sealed client-side pending submission",
+    },
+    sealed_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      comment: "When the exam was sealed client-side",
+    },
+    sealed_hash: {
+      type: DataTypes.STRING(64),
+      allowNull: true,
+      comment: "SHA-256 hash of sealed responses for integrity verification",
+    },
+    sealed_responses: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      comment: "Cached sealed responses for auto-submit recovery",
+    },
   },
   {
     tableName: "exam_attempts",

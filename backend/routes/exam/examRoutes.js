@@ -267,6 +267,111 @@ router.delete(
 );
 
 // ============================================
+// STUDENT EXAM PARTICIPANT MANAGEMENT (Admin/Teacher)
+// ============================================
+
+// Get all student participants/attempts for an exam
+router.get(
+  "/:examId/student-participants",
+  authenticateToken,
+  authorizeRoles("admin", "teacher"),
+  async (req, res) => {
+    try {
+      const { examId } = req.params;
+      const { search, status, page = 1, limit = 20 } = req.query;
+      const { ExamAttempt, Student, Exam } = require("../../model");
+      const { Op } = require("sequelize");
+
+      // Build student filter for search
+      const studentWhere = {};
+      if (search) {
+        studentWhere[Op.or] = [
+          { std_email: { [Op.like]: `%${search}%` } },
+          { std_fname: { [Op.like]: `%${search}%` } },
+          { std_lname: { [Op.like]: `%${search}%` } },
+          { std_id: !isNaN(search) ? parseInt(search) : -1 },
+        ];
+      }
+
+      // Build attempt filter (only student attempts, not guests)
+      const attemptWhere = {
+        exam_id: examId,
+        std_id: { [Op.ne]: null },
+        is_guest: false,
+      };
+      if (status) {
+        attemptWhere.status = status;
+      }
+
+      const offset = (parseInt(page) - 1) * parseInt(limit);
+
+      const { count, rows: attempts } = await ExamAttempt.findAndCountAll({
+        where: attemptWhere,
+        include: [
+          {
+            model: Student,
+            as: "student",
+            where: Object.keys(studentWhere).length ? studentWhere : undefined,
+            attributes: ["std_id", "std_fname", "std_lname", "std_email", "std_phone"],
+          },
+        ],
+        attributes: [
+          "attempt_id", "attempt_number", "status", "started_at", "submitted_at",
+          "total_score", "max_score", "percentage", "grade", "pass_status",
+          "time_taken_seconds", "tab_switches", "questions_answered",
+        ],
+        order: [["started_at", "DESC"]],
+        limit: parseInt(limit),
+        offset,
+      });
+
+      res.json({
+        success: true,
+        data: attempts,
+        pagination: {
+          total: count,
+          page: parseInt(page),
+          limit: parseInt(limit),
+          totalPages: Math.ceil(count / parseInt(limit)),
+        },
+      });
+    } catch (error) {
+      console.error("Error fetching student participants:", error);
+      res.status(500).json({ success: false, message: "Failed to fetch student participants" });
+    }
+  }
+);
+
+// Delete a student exam attempt (admin only)
+router.delete(
+  "/:examId/student-participants/:attemptId",
+  authenticateToken,
+  authorizeRoles("admin"),
+  async (req, res) => {
+    try {
+      const { examId, attemptId } = req.params;
+      const { ExamAttempt, StudentResponse } = require("../../model");
+
+      const attempt = await ExamAttempt.findOne({
+        where: { attempt_id: attemptId, exam_id: examId, is_guest: false },
+      });
+
+      if (!attempt) {
+        return res.status(404).json({ success: false, message: "Attempt not found" });
+      }
+
+      await StudentResponse.destroy({ where: { attempt_id: attemptId } });
+      await attempt.destroy();
+
+      res.json({ success: true, message: "Student attempt deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting student attempt:", error);
+      res.status(500).json({ success: false, message: "Failed to delete student attempt" });
+    }
+  }
+);
+
+// ============================================
 // GRADING ROUTES (Teacher/Admin)
 // ============================================
 

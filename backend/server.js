@@ -12,6 +12,7 @@ const db = require("./model");
 
 // Socket service singleton
 const socketService = require("./services/socketService");
+const { authenticateSocket, isTeacherOrAdmin } = require("./middleware/socketAuth");
 
 // Routes
 const employeeRoute = require("./routes/employee");
@@ -32,6 +33,7 @@ const disciplineMarksRoutes = require("./routes/discipline/disciplineMarksRoutes
 const examRoutes = require("./routes/exam/examRoutes");
 const studentExamRoutes = require("./routes/exam/studentExamRoutes");
 const publicExamRoutes = require("./routes/exam/publicExamRoutes");
+const resumeRequestRoutes = require("./routes/exam/resumeRequestRoutes");
 
 // Upload Routes
 const uploadRoutes = require("./routes/uploadRoutes");
@@ -79,6 +81,7 @@ app.use("/api/discipline-marks", disciplineMarksRoutes);
 app.use("/api/exam", examRoutes);
 app.use("/api/student/exam", studentExamRoutes);
 app.use("/api/public/exam", publicExamRoutes);
+app.use("/api/exam/resume-requests", resumeRequestRoutes);
 
 // Upload Routes
 app.use("/api/upload", uploadRoutes);
@@ -113,7 +116,12 @@ const io = new Server(httpServer, {
 
 socketService.setIO(io);
 
+// Apply socket authentication middleware
+io.use(authenticateSocket);
+
 io.on("connection", (socket) => {
+  console.log(`Socket connected: ${socket.id} (${socket.user?.type || "anonymous"})`);
+
   // Teacher or student joins an exam room
   socket.on("exam:join", ({ examId }) => {
     if (examId) socket.join(`exam:${examId}`);
@@ -130,6 +138,75 @@ io.on("connection", (socket) => {
 
   socket.on("attempt:leave", ({ attemptId }) => {
     if (attemptId) socket.leave(`attempt:${attemptId}`);
+  });
+
+  // ============================================
+  // RESUME REQUEST SOCKET EVENTS
+  // ============================================
+
+  // Teacher joins resume request monitoring for specific exams
+  socket.on("resume:join_teacher", ({ examIds }) => {
+    if (!isTeacherOrAdmin(socket)) {
+      console.log("Non-teacher tried to join resume:teachers room");
+      return;
+    }
+    // Join individual exam rooms
+    if (Array.isArray(examIds)) {
+      examIds.forEach((id) => {
+        if (id) socket.join(`resume:exam:${id}`);
+      });
+    }
+    // Also join the general teachers room
+    socket.join("resume:teachers");
+    console.log(`Teacher ${socket.user?.name} joined resume monitoring`);
+  });
+
+  socket.on("resume:leave_teacher", () => {
+    socket.leave("resume:teachers");
+    // Note: We don't track which exam rooms they joined, so they stay in those
+    console.log(`Teacher ${socket.user?.name} left resume monitoring`);
+  });
+
+  // User (student or guest) waiting for resume approval
+  socket.on("resume:wait", async ({ requestId }) => {
+    if (!requestId) return;
+
+    // Join the request-specific room to receive approval/decline events
+    socket.join(`resume:request:${requestId}`);
+    console.log(`User waiting for resume approval: request ${requestId}`);
+
+    // Update the ResumeRequest with this socket ID for tracking
+    try {
+      const { ResumeRequest } = require("./model");
+      await ResumeRequest.update(
+        { socket_id: socket.id },
+        { where: { request_id: requestId, status: "pending" } }
+      );
+    } catch (err) {
+      console.error("Failed to update socket_id for resume request:", err);
+    }
+  });
+
+  socket.on("resume:leave_wait", ({ requestId }) => {
+    if (requestId) {
+      socket.leave(`resume:request:${requestId}`);
+    }
+  });
+
+  // Handle disconnection
+  socket.on("disconnect", async () => {
+    console.log(`Socket disconnected: ${socket.id}`);
+
+    // Clear socket_id from any pending resume requests
+    try {
+      const { ResumeRequest } = require("./model");
+      await ResumeRequest.update(
+        { socket_id: null },
+        { where: { socket_id: socket.id, status: "pending" } }
+      );
+    } catch (err) {
+      // Silently ignore - not critical
+    }
   });
 });
 

@@ -38,9 +38,11 @@ import QuestionEditor from "../pages/dashboard/exam/QuestionEditor";
 import GradingDashboard from "../pages/dashboard/exam/GradingDashboard";
 import ExamResponses from "../pages/dashboard/exam/ExamResponses";
 import PublicExamParticipants from "../pages/dashboard/exam/PublicExamParticipants";
+import StudentExamParticipants from "../pages/dashboard/exam/StudentExamParticipants";
 import TakeExam from "../pages/dashboard/exam/TakeExam";
 import StudentExamList from "../pages/dashboard/exam/StudentExamList";
 import ExamResult from "../pages/dashboard/exam/ExamResult";
+import ResumeRequestsPage from "../pages/dashboard/exam/ResumeRequestsPage";
 
 // Student Dashboard Pages
 import StudentDashboardHome from "../pages/dashboard/student/StudentDashboardHome";
@@ -118,6 +120,8 @@ const router = createBrowserRouter([
     { path: "exams/:examId/responses", element: <ExamResponses /> },
     { path: "exams/:examId/grading", element: <GradingDashboard /> },
     { path: "exams/:examId/participants", element: <PublicExamParticipants /> },
+    { path: "exams/:examId/student-participants", element: <StudentExamParticipants /> },
+    { path: "exams/resume-requests", element: <ResumeRequestsPage /> },
     // Student exam routes (accessible by students)
     { path: "student-exams", element: <StudentExamList /> },
     { path: "student-exams/:examId/take", element: <TakeExam /> },

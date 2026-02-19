@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {
   FileText, Plus, Search, Edit, Trash2, Eye, ChevronDown, ChevronLeft, ChevronRight,
   AlertTriangle, CheckCircle, XCircle, X, RefreshCw, Clock, Users, BookOpen,
-  Filter, Grid3X3, List, Play, Copy, Send, BarChart3, Calendar, Lock, Link2, Share2, Globe
+  Filter, Grid3X3, List, Play, Copy, Send, BarChart3, Calendar, Lock, Link2, Share2, Globe,
+  Archive, ArchiveRestore, GraduationCap
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -144,6 +145,10 @@ const ExamManagement = () => {
     navigate(`/employee/dashboard/exams/${exam.exam_id}/participants`);
   };
 
+  const handleViewStudentParticipants = (exam) => {
+    navigate(`/employee/dashboard/exams/${exam.exam_id}/student-participants`);
+  };
+
   const handlePublish = async (exam) => {
     try {
       setOperationLoading(true);
@@ -152,6 +157,32 @@ const ExamManagement = () => {
       showToast('success', `"${exam.title}" published successfully!`);
     } catch (err) {
       showToast('error', err.message || 'Failed to publish exam');
+    } finally {
+      setOperationLoading(false);
+    }
+  };
+
+  const handleArchive = async (exam) => {
+    try {
+      setOperationLoading(true);
+      await examService.archiveExam(exam.exam_id);
+      await loadExams();
+      showToast('success', `"${exam.title}" archived. Students in progress can still complete their attempt.`);
+    } catch (err) {
+      showToast('error', err.message || 'Failed to archive exam');
+    } finally {
+      setOperationLoading(false);
+    }
+  };
+
+  const handleUnarchive = async (exam) => {
+    try {
+      setOperationLoading(true);
+      await examService.unarchiveExam(exam.exam_id);
+      await loadExams();
+      showToast('success', `"${exam.title}" unarchived and set to draft. You can edit and republish it.`);
+    } catch (err) {
+      showToast('error', err.message || 'Failed to unarchive exam');
     } finally {
       setOperationLoading(false);
     }
@@ -379,14 +410,24 @@ const ExamManagement = () => {
                       <BookOpen className="w-4 h-4" />
                     </motion.button>
                     {(exam.status === 'published' || exam.attempt_count > 0) && (
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        onClick={() => handleViewResponses(exam)}
-                        className="text-gray-500 hover:text-indigo-600 p-2 rounded-full hover:bg-indigo-50"
-                        title="View Responses"
-                      >
-                        <Users className="w-4 h-4" />
-                      </motion.button>
+                      <>
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          onClick={() => handleViewResponses(exam)}
+                          className="text-gray-500 hover:text-indigo-600 p-2 rounded-full hover:bg-indigo-50"
+                          title="View Responses"
+                        >
+                          <Users className="w-4 h-4" />
+                        </motion.button>
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          onClick={() => handleViewStudentParticipants(exam)}
+                          className="text-gray-500 hover:text-cyan-600 p-2 rounded-full hover:bg-cyan-50"
+                          title="View Student Participants"
+                        >
+                          <GraduationCap className="w-4 h-4" />
+                        </motion.button>
+                      </>
                     )}
                     {exam.is_public && (exam.status === 'published' || exam.attempt_count > 0) && (
                       <motion.button
@@ -419,14 +460,44 @@ const ExamManagement = () => {
                       </>
                     )}
                     {exam.status === 'published' && (
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        onClick={() => exam.is_public ? setShareModal(exam) : handleShareLink(exam)}
-                        className={`p-2 rounded-full ${exam.is_public ? 'text-purple-500 hover:text-purple-600 hover:bg-purple-50' : 'text-gray-400 hover:text-gray-500 hover:bg-gray-50'}`}
-                        title={exam.is_public ? "Share Link" : "Enable Public Access to Share"}
-                      >
-                        <Link2 className="w-4 h-4" />
-                      </motion.button>
+                      <>
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          onClick={() => exam.is_public ? setShareModal(exam) : handleShareLink(exam)}
+                          className={`p-2 rounded-full ${exam.is_public ? 'text-purple-500 hover:text-purple-600 hover:bg-purple-50' : 'text-gray-400 hover:text-gray-500 hover:bg-gray-50'}`}
+                          title={exam.is_public ? "Share Link" : "Enable Public Access to Share"}
+                        >
+                          <Link2 className="w-4 h-4" />
+                        </motion.button>
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          onClick={() => handleArchive(exam)}
+                          className="text-gray-500 hover:text-orange-600 p-2 rounded-full hover:bg-orange-50"
+                          title="Archive (hide from new students, current attempts can continue)"
+                        >
+                          <Archive className="w-4 h-4" />
+                        </motion.button>
+                      </>
+                    )}
+                    {exam.status === 'archived' && (
+                      <>
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          onClick={() => handleEditExam(exam)}
+                          className="text-gray-500 hover:text-primary-600 p-2 rounded-full hover:bg-primary-50"
+                          title="Edit"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </motion.button>
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          onClick={() => handleUnarchive(exam)}
+                          className="text-gray-500 hover:text-green-600 p-2 rounded-full hover:bg-green-50"
+                          title="Unarchive (set to draft for editing and republishing)"
+                        >
+                          <ArchiveRestore className="w-4 h-4" />
+                        </motion.button>
+                      </>
                     )}
                     <motion.button
                       whileHover={{ scale: 1.1 }}
@@ -515,14 +586,24 @@ const ExamManagement = () => {
                 <BookOpen className="w-4 h-4" />
               </motion.button>
               {(exam.status === 'published' || exam.attempt_count > 0) && (
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  onClick={() => handleViewResponses(exam)}
-                  className="text-gray-500 hover:text-indigo-600 p-1.5 rounded-full hover:bg-indigo-50"
-                  title="View Responses"
-                >
-                  <Users className="w-4 h-4" />
-                </motion.button>
+                <>
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    onClick={() => handleViewResponses(exam)}
+                    className="text-gray-500 hover:text-indigo-600 p-1.5 rounded-full hover:bg-indigo-50"
+                    title="View Responses"
+                  >
+                    <Users className="w-4 h-4" />
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    onClick={() => handleViewStudentParticipants(exam)}
+                    className="text-gray-500 hover:text-cyan-600 p-1.5 rounded-full hover:bg-cyan-50"
+                    title="View Student Participants"
+                  >
+                    <GraduationCap className="w-4 h-4" />
+                  </motion.button>
+                </>
               )}
               {exam.is_public && (exam.status === 'published' || exam.attempt_count > 0) && (
                 <motion.button
@@ -539,9 +620,40 @@ const ExamManagement = () => {
                   whileHover={{ scale: 1.1 }}
                   onClick={() => handleEditExam(exam)}
                   className="text-gray-500 hover:text-primary-600 p-1.5 rounded-full hover:bg-primary-50"
+                  title="Edit"
                 >
                   <Edit className="w-4 h-4" />
                 </motion.button>
+              )}
+              {exam.status === 'published' && (
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  onClick={() => handleArchive(exam)}
+                  className="text-gray-500 hover:text-orange-600 p-1.5 rounded-full hover:bg-orange-50"
+                  title="Archive"
+                >
+                  <Archive className="w-4 h-4" />
+                </motion.button>
+              )}
+              {exam.status === 'archived' && (
+                <>
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    onClick={() => handleEditExam(exam)}
+                    className="text-gray-500 hover:text-primary-600 p-1.5 rounded-full hover:bg-primary-50"
+                    title="Edit"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    onClick={() => handleUnarchive(exam)}
+                    className="text-gray-500 hover:text-green-600 p-1.5 rounded-full hover:bg-green-50"
+                    title="Unarchive"
+                  >
+                    <ArchiveRestore className="w-4 h-4" />
+                  </motion.button>
+                </>
               )}
               <motion.button
                 whileHover={{ scale: 1.1 }}
