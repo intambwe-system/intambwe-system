@@ -212,7 +212,7 @@ io.on("connection", (socket) => {
 
 /* Start Server */
 db.sequelize
-  .sync({ alter: false })
+  .sync({ alter: true })
   .then(() => {
     console.log("Database synchronized");
     httpServer.listen(PORT, () => {

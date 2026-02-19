@@ -89,9 +89,11 @@ const checkSealedExamsPublic = async (req, res) => {
         success: true,
         hasSealedExams: false,
         sealedAttempts: [],
+        inProgressAttempts: [],
       });
     }
 
+    // Find sealed attempts (is_sealed = true)
     const sealedAttempts = await ExamAttempt.findAll({
       where: {
         guest_id: guest.guest_id,
@@ -113,13 +115,42 @@ const checkSealedExamsPublic = async (req, res) => {
         "sealed_responses",
         "started_at",
         "questions_answered",
+        "time_remaining_seconds",
       ],
       order: [["sealed_at", "DESC"]],
+    });
+
+    // Find in-progress attempts that are NOT sealed (for resume request)
+    const inProgressAttempts = await ExamAttempt.findAll({
+      where: {
+        guest_id: guest.guest_id,
+        status: "in_progress",
+        [Op.or]: [
+          { is_sealed: false },
+          { is_sealed: null },
+        ],
+      },
+      include: [
+        {
+          model: Exam,
+          as: "exam",
+          attributes: ["exam_id", "uuid", "title", "has_time_limit", "time_limit_minutes"],
+        },
+      ],
+      attributes: [
+        "attempt_id",
+        "exam_id",
+        "started_at",
+        "questions_answered",
+        "time_remaining_seconds",
+      ],
+      order: [["started_at", "DESC"]],
     });
 
     res.json({
       success: true,
       hasSealedExams: sealedAttempts.length > 0,
+      hasInProgressExams: inProgressAttempts.length > 0,
       sealedAttempts: sealedAttempts.map((a) => ({
         attempt_id: a.attempt_id,
         exam_id: a.exam_id,
@@ -128,6 +159,16 @@ const checkSealedExamsPublic = async (req, res) => {
         sealed_at: a.sealed_at,
         questions_answered: a.questions_answered,
         has_sealed_responses: !!a.sealed_responses,
+        time_remaining_seconds: a.time_remaining_seconds,
+      })),
+      inProgressAttempts: inProgressAttempts.map((a) => ({
+        attempt_id: a.attempt_id,
+        exam_id: a.exam_id,
+        exam_uuid: a.exam?.uuid,
+        exam_title: a.exam?.title,
+        started_at: a.started_at,
+        questions_answered: a.questions_answered,
+        time_remaining_seconds: a.time_remaining_seconds,
       })),
       session_token: guest.session_token, // Return for auto-submit authentication
     });

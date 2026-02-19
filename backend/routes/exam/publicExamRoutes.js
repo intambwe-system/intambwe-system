@@ -679,15 +679,19 @@ router.post("/attempt/:attemptId/tab-switch", async (req, res) => {
       return res.status(404).json({ success: false });
     }
 
-    const violations = attempt.violation_log || [];
-    violations.push({
-      type: "tab_switch",
+    // violation_log is a JSON object, not an array
+    const currentLog = attempt.violation_log || {};
+    const tabSwitches = currentLog.tab_switches || [];
+    tabSwitches.push({
       timestamp: new Date().toISOString(),
     });
 
     await attempt.update({
       tab_switches: (attempt.tab_switches || 0) + 1,
-      violation_log: violations,
+      violation_log: {
+        ...currentLog,
+        tab_switches: tabSwitches,
+      },
     });
 
     res.json({
