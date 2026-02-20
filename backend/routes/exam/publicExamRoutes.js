@@ -20,6 +20,34 @@ const resumeRequestController = require("../../controllers/exam/resumeRequestCon
 // PUBLIC EXAM ROUTES (No Authentication Required)
 // ============================================
 
+// IMPORTANT: Specific routes MUST come before /:uuid to avoid matching issues
+
+// ============================================
+// SEALED EXAM & RESUME REQUEST ROUTES (moved here for correct routing)
+// ============================================
+
+// Check for sealed unsubmitted exams by email
+router.get(
+  "/check-sealed/:email",
+  autoSubmitController.checkSealedExamsPublic
+);
+
+// Create resume request
+router.post(
+  "/resume-request",
+  resumeRequestController.createResumeRequestGuest
+);
+
+// Check resume request status
+router.get(
+  "/resume-request/:uuid",
+  resumeRequestController.getRequestStatusGuest
+);
+
+// ============================================
+// EXAM LOOKUP ROUTES
+// ============================================
+
 /**
  * Get public exam info by UUID
  * GET /api/public/exam/:uuid
@@ -787,14 +815,8 @@ router.get("/lookup/search", async (req, res) => {
 });
 
 // ============================================
-// SEALED EXAM & RESUME REQUEST ROUTES
+// SEAL & AUTO-SUBMIT ROUTES (these don't conflict with /:uuid)
 // ============================================
-
-// Check for sealed unsubmitted exams by email
-router.get(
-  "/check-sealed/:email",
-  autoSubmitController.checkSealedExamsPublic
-);
 
 // Save sealed state to server
 router.post(
@@ -806,18 +828,6 @@ router.post(
 router.post(
   "/attempt/:id/auto-submit",
   autoSubmitController.autoSubmitSealedPublic
-);
-
-// Create resume request
-router.post(
-  "/resume-request",
-  resumeRequestController.createResumeRequestGuest
-);
-
-// Check resume request status
-router.get(
-  "/resume-request/:uuid",
-  resumeRequestController.getRequestStatusGuest
 );
 
 module.exports = router;

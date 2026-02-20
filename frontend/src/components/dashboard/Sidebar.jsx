@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   Menu, X, Home, Users, Package, ShoppingCart, BarChart3, TrendingDown,
   Archive, FolderTree, BookOpen, GraduationCap, Award, Settings,
-  Building2, LogOut, ChevronDown, FileText, ClipboardCheck, Bell
+  Building2, LogOut, ChevronDown, FileText, ClipboardCheck
 } from 'lucide-react';
 import {useNavigate}  from 'react-router-dom'
 
@@ -180,12 +180,6 @@ const Sidebar = ({ isOpen = true, onClose = () => {} }) => {
           icon: ClipboardCheck,
           path: '/employee/dashboard/student-exams',
           roles: ['teacher', 'admin', 'student']
-        },
-        {
-          title: 'Resume Requests',
-          icon: Bell,
-          path: '/employee/dashboard/exams/resume-requests',
-          roles: ['teacher', 'admin']
         },
       ]
     }

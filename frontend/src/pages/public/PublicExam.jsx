@@ -10,9 +10,6 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import Swal from 'sweetalert2';
 import api from '../../api/api';
-import WaitingApprovalScreen from '../../components/exam/WaitingApprovalScreen';
-import * as examService from '../../services/examService';
-import * as socketService from '../../services/socketService';
 
 const QUESTIONS_PER_PAGE = 4;
 const TAB_SWITCH_WARNING_SECONDS = 5;
@@ -74,13 +71,6 @@ const PublicExam = () => {
   const submissionRetryRef = useRef(null);
   const MAX_SUBMISSION_RETRIES = 10;
 
-  // Sealed exam / Resume request state
-  const [checkingSealed, setCheckingSealed] = useState(false);
-  const [autoSubmittingSealed, setAutoSubmittingSealed] = useState(false);
-  const [resumeRequest, setResumeRequest] = useState(null);
-  const [resumeRequestStatus, setResumeRequestStatus] = useState(null); // 'pending', 'approved', 'declined', 'expired'
-  const TIMER_PERSIST_INTERVAL = 30000; // Save timer every 30 seconds
-  const timerPersistRef = useRef(null);
 
   // Participant info for watermark
   const [participantInfo, setParticipantInfo] = useState({
@@ -94,30 +84,8 @@ const PublicExam = () => {
     loadExamInfo();
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
-      if (timerPersistRef.current) clearInterval(timerPersistRef.current);
     };
   }, [uuid]);
-
-  // Poll for connection when offline with sealed exam pending
-  useEffect(() => {
-    if (!autoSubmittingSealed || isOnline) return;
-
-    const pollConnection = setInterval(async () => {
-      try {
-        // Simple GET to check if we're back online
-        await api.get('/');
-        setIsOnline(true);
-        // Retry the auto-submit
-        if (registrationData.email) {
-          checkForSealedOrInterruptedExam(registrationData.email);
-        }
-      } catch {
-        // Still offline
-      }
-    }, 5000);
-
-    return () => clearInterval(pollConnection);
-  }, [autoSubmittingSealed, isOnline, registrationData.email]);
 
   const loadExamInfo = async () => {
     try {
@@ -389,131 +357,6 @@ const PublicExam = () => {
     };
   }, [pendingSubmission, phase]);
 
-  // Timer persistence - save remaining time to localStorage every 30 seconds
-  useEffect(() => {
-    if (phase !== 'exam' || !timeRemaining || !registrationData.email || !exam?.exam_id) return;
-
-    const persistTimer = () => {
-      const key = `exam_timer_${registrationData.email}_${exam.exam_id}`;
-      localStorage.setItem(key, JSON.stringify({
-        timeRemaining,
-        savedAt: Date.now(),
-        attemptId: attempt?.attempt_id
-      }));
-    };
-
-    // Save immediately when entering exam
-    persistTimer();
-
-    // Then save every 30 seconds
-    timerPersistRef.current = setInterval(persistTimer, TIMER_PERSIST_INTERVAL);
-
-    return () => {
-      if (timerPersistRef.current) {
-        clearInterval(timerPersistRef.current);
-      }
-    };
-  }, [phase, timeRemaining, registrationData.email, exam?.exam_id, attempt?.attempt_id]);
-
-  // Check for sealed exams when email is provided
-  const checkForSealedOrInterruptedExam = async (email) => {
-    try {
-      setCheckingSealed(true);
-      const result = await examService.checkSealedExamsPublic(email);
-
-      if (result.sealed_attempts && result.sealed_attempts.length > 0) {
-        // Found sealed exam - auto-submit it
-        const sealedAttempt = result.sealed_attempts[0];
-        setAutoSubmittingSealed(true);
-
-        try {
-          const submitResult = await examService.autoSubmitSealedExamPublic(
-            sealedAttempt.attempt_id,
-            email
-          );
-
-          // Navigate to result page
-          showToast('success', 'Your previously sealed exam has been submitted.');
-          navigate(`/public/exam/${uuid}/result/${sealedAttempt.attempt_id}?auto=true`);
-          return { handled: true };
-        } catch (submitErr) {
-          console.error('Failed to auto-submit sealed exam:', submitErr);
-          showToast('error', 'Failed to submit sealed exam. Please try again.');
-          setAutoSubmittingSealed(false);
-        }
-      }
-
-      if (result.in_progress_attempts && result.in_progress_attempts.length > 0) {
-        // Found interrupted (non-sealed) exam - need resume approval
-        const interruptedAttempt = result.in_progress_attempts[0];
-
-        // Check if this exam matches current UUID
-        if (interruptedAttempt.exam_uuid === uuid) {
-          // Create resume request
-          try {
-            const resumeResult = await examService.createResumeRequestPublic(
-              interruptedAttempt.attempt_id,
-              email,
-              registrationData.full_name
-            );
-
-            setResumeRequest(resumeResult.request);
-            setResumeRequestStatus('pending');
-            setPhase('waiting_approval');
-            return { handled: true };
-          } catch (resumeErr) {
-            console.error('Failed to create resume request:', resumeErr);
-            showToast('error', 'Failed to request exam resume. Please contact instructor.');
-          }
-        }
-      }
-
-      return { handled: false };
-    } catch (err) {
-      console.error('Error checking sealed exams:', err);
-      // If 404 or no sealed exams, continue normally
-      return { handled: false };
-    } finally {
-      setCheckingSealed(false);
-    }
-  };
-
-  // Handle resume request approval/decline via socket
-  const handleResumeApproved = useCallback((data) => {
-    setResumeRequestStatus('approved');
-    showToast('success', 'Your resume request was approved!');
-
-    // Restore timer from localStorage if available
-    const timerKey = `exam_timer_${registrationData.email}_${exam?.exam_id}`;
-    const savedTimer = localStorage.getItem(timerKey);
-
-    setTimeout(() => {
-      // Resume the exam with remaining time from server
-      if (data.time_remaining_seconds) {
-        setTimeRemaining(data.time_remaining_seconds);
-      } else if (savedTimer) {
-        const parsed = JSON.parse(savedTimer);
-        const elapsed = Math.floor((Date.now() - parsed.savedAt) / 1000);
-        const remaining = Math.max(0, parsed.timeRemaining - elapsed);
-        setTimeRemaining(remaining);
-      }
-
-      // Transition to exam phase
-      setPhase('exam');
-      startTimer(data.time_remaining_seconds || timeRemaining);
-    }, 1500);
-  }, [registrationData.email, exam?.exam_id]);
-
-  const handleResumeDeclined = useCallback((data) => {
-    setResumeRequestStatus('declined');
-    showToast('error', data.reason || 'Your resume request was declined.');
-  }, []);
-
-  const handleResumeExpired = useCallback(() => {
-    setResumeRequestStatus('expired');
-    showToast('error', 'Your resume request has expired.');
-  }, []);
-
   // Retry submission function for offline recovery
   const retrySubmission = async () => {
     if (!pendingSubmission || !attempt?.attempt_id) return;
@@ -768,38 +611,6 @@ const PublicExam = () => {
     };
   }, [phase, exam, handleTabSwitch]);
 
-  // Seal exam on page unload (browser close, PC shutdown, refresh)
-  useEffect(() => {
-    if (phase !== 'exam' || !attempt?.attempt_id || !sessionToken) return;
-
-    const handleBeforeUnload = (e) => {
-      // Seal the exam using sendBeacon for reliability
-      const sealData = JSON.stringify({
-        session_token: sessionToken,
-        time_remaining_seconds: timeRemaining,
-        responses: responses
-      });
-
-      // Use sendBeacon for reliability during page unload
-      const baseUrl = import.meta.env.VITE_API_URL?.replace(/\/api\/?$/, '') || '';
-      navigator.sendBeacon(
-        `${baseUrl}/api/public/exam/attempt/${attempt.attempt_id}/seal`,
-        new Blob([sealData], { type: 'application/json' })
-      );
-
-      // Show browser confirmation dialog
-      e.preventDefault();
-      e.returnValue = 'Your exam will be paused. You will need instructor approval to resume.';
-      return e.returnValue;
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [phase, attempt?.attempt_id, sessionToken, timeRemaining, responses]);
-
   // Generate watermark positions
   const generateWatermarks = () => {
     if (!participantInfo.name) return null;
@@ -864,12 +675,6 @@ const PublicExam = () => {
       email: registrationData.email,
       timestamp: new Date().toLocaleString()
     });
-
-    // Check for sealed or interrupted exams before proceeding
-    const { handled } = await checkForSealedOrInterruptedExam(registrationData.email);
-    if (handled) {
-      return; // Already handling sealed/interrupted exam
-    }
 
     if (exam.has_password) {
       setPhase('password');
@@ -1533,70 +1338,6 @@ const PublicExam = () => {
               Back
             </button>
           </form>
-        </motion.div>
-      </div>
-    );
-  }
-
-  // Waiting for approval phase (resume request)
-  if (phase === 'waiting_approval') {
-    return (
-      <WaitingApprovalScreen
-        requestId={resumeRequest?.request_id}
-        requestUuid={resumeRequest?.uuid}
-        examTitle={exam?.title}
-        status={resumeRequestStatus}
-        isPublic={true}
-        onApproved={handleResumeApproved}
-        onDeclined={handleResumeDeclined}
-        onExpired={handleResumeExpired}
-        onCancel={() => {
-          setResumeRequest(null);
-          setResumeRequestStatus(null);
-          setPhase('registration');
-        }}
-      />
-    );
-  }
-
-  // Auto-submitting sealed exam phase
-  if (autoSubmittingSealed || checkingSealed) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 to-blue-50 flex items-center justify-center py-8 px-4">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center"
-        >
-          <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Upload className="w-10 h-10 text-amber-600 animate-pulse" />
-          </div>
-
-          <h2 className="text-xl font-bold text-gray-900 mb-2">
-            {autoSubmittingSealed ? 'Submitting Your Exam...' : 'Checking for Previous Exams...'}
-          </h2>
-          <p className="text-gray-500 mb-6">
-            {autoSubmittingSealed
-              ? 'We found a previously sealed exam. Submitting it now...'
-              : 'Please wait while we check your exam status...'}
-          </p>
-
-          <div className="flex items-center justify-center space-x-2">
-            <Loader2 className="w-6 h-6 text-primary-600 animate-spin" />
-            <span className="text-gray-600">Please wait...</span>
-          </div>
-
-          {!isOnline && (
-            <div className="mt-6 bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <div className="flex items-center space-x-2 text-amber-700">
-                <WifiOff className="w-5 h-5" />
-                <span className="text-sm font-medium">You are offline</span>
-              </div>
-              <p className="text-amber-600 text-sm mt-1">
-                Will retry automatically when connection returns...
-              </p>
-            </div>
-          )}
         </motion.div>
       </div>
     );

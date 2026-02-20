@@ -1,26 +1,15 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useBlocker } from 'react-router-dom';
 import {
   Clock, AlertTriangle, ChevronLeft, ChevronRight, Flag, Check,
-  Send, Shield, BookOpen, Play, Loader2, X, CheckCircle, XCircle,
+  Send, Shield, BookOpen, Play, Loader2, CheckCircle,
   Eye, FileText, Timer, AlertCircle, Lock, Maximize, MonitorOff,
-  RotateCcw, ClipboardList, Wifi, WifiOff, RefreshCw, ShieldCheck, Upload
+  RotateCcw, ClipboardList
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Swal from 'sweetalert2';
 import * as examService from '../../../services/examService';
 import { useStudentAuth } from '../../../contexts/StudentAuthContext';
-import api from '../../../api/api';
-import WaitingApprovalScreen from '../../../components/exam/WaitingApprovalScreen';
-
-// Simple hash function for client-side integrity check
-const generateHash = async (data) => {
-  const encoder = new TextEncoder();
-  const dataBuffer = encoder.encode(JSON.stringify(data));
-  const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-};
 
 const QUESTIONS_PER_PAGE = 3;
 const TAB_SWITCH_WARNING_SECONDS = 4;
@@ -127,156 +116,19 @@ const TakeExam = () => {
   const tabWarningTimerRef = useRef(null);
   const tabSwitchCountRef = useRef(0);
 
-  // Offline submission handling with SEALING mechanism
-  const [isOnline, setIsOnline] = useState(true); // Assume online, verify with health check
-  const [pendingSubmission, setPendingSubmission] = useState(false);
-  const [submissionRetryCount, setSubmissionRetryCount] = useState(0);
-  const [showOfflineWarning, setShowOfflineWarning] = useState(false);
-  const submissionRetryRef = useRef(null);
-  const networkCheckRef = useRef(null);
-  const MAX_SUBMISSION_RETRIES = 10;
-  const NETWORK_CHECK_INTERVAL = 5000; // 5 seconds
-
-  // SEALING state - once sealed, answers are LOCKED
-  const [isSealed, setIsSealed] = useState(false);
-  const [sealedData, setSealedData] = useState(null);
-  const [sealStatus, setSealStatus] = useState(''); // 'sealing', 'sealed', 'submitting', 'submitted'
-
-  // Timer persistence state
-  const TIMER_PERSIST_INTERVAL = 30000; // Save timer every 30 seconds
-  const timerPersistRef = useRef(null);
-
-  // Resume request state (for teacher approval flow)
-  const [resumeRequest, setResumeRequest] = useState(null);
-  const [resumeRequestStatus, setResumeRequestStatus] = useState(null); // 'pending', 'approved', 'declined', 'expired'
-  const [checkingSealed, setCheckingSealed] = useState(false);
-
   // Block in-app navigation while the exam is active (back button, programmatic navigate, etc.)
   const blocker = useBlocker(
     ({ currentLocation, nextLocation }) =>
       phase === 'exam' && currentLocation.pathname !== nextLocation.pathname
   );
 
-  // LocalStorage key for this exam attempt
-  const getStorageKey = () => `exam_responses_${examId}_${attempt?.attempt_id || 'temp'}`;
-
   // Load exam info
   useEffect(() => {
     loadExamInfo();
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
-      if (timerPersistRef.current) clearInterval(timerPersistRef.current);
     };
   }, [examId]);
-
-  // Timer persistence - save remaining time to localStorage every 30 seconds
-  useEffect(() => {
-    if (phase !== 'exam' || !timeRemaining || !examId || !attempt?.attempt_id) return;
-
-    const persistTimer = () => {
-      const key = `exam_timer_student_${examId}`;
-      localStorage.setItem(key, JSON.stringify({
-        timeRemaining,
-        savedAt: Date.now(),
-        attemptId: attempt.attempt_id
-      }));
-    };
-
-    // Save immediately when entering exam
-    persistTimer();
-
-    // Then save every 30 seconds
-    timerPersistRef.current = setInterval(persistTimer, TIMER_PERSIST_INTERVAL);
-
-    return () => {
-      if (timerPersistRef.current) {
-        clearInterval(timerPersistRef.current);
-      }
-    };
-  }, [phase, timeRemaining, examId, attempt?.attempt_id]);
-
-  // Check for sealed exams on dashboard login (called from StudentDashboard)
-  const checkForSealedExams = useCallback(async () => {
-    try {
-      setCheckingSealed(true);
-      const result = await examService.checkSealedExams();
-
-      if (result.sealed_attempts && result.sealed_attempts.length > 0) {
-        // Found sealed exam - auto-submit it
-        const sealedAttempt = result.sealed_attempts[0];
-
-        try {
-          await examService.autoSubmitSealedExam(sealedAttempt.attempt_id);
-          showToast('success', 'Your previously sealed exam has been submitted.');
-          // Reload exam info to get fresh state
-          loadExamInfo();
-        } catch (submitErr) {
-          console.error('Failed to auto-submit sealed exam:', submitErr);
-        }
-      }
-
-      return result;
-    } catch (err) {
-      console.error('Error checking sealed exams:', err);
-      return { sealed_attempts: [], in_progress_attempts: [] };
-    } finally {
-      setCheckingSealed(false);
-    }
-  }, []);
-
-  // Handle resume request callbacks
-  const handleResumeApproved = useCallback((data) => {
-    setResumeRequestStatus('approved');
-    showToast('success', 'Your resume request was approved!');
-
-    // Restore timer from localStorage if available
-    const timerKey = `exam_timer_student_${examId}`;
-    const savedTimer = localStorage.getItem(timerKey);
-
-    setTimeout(() => {
-      // Start the exam with restored time
-      if (data.time_remaining_seconds) {
-        setTimeRemaining(data.time_remaining_seconds);
-      } else if (savedTimer) {
-        try {
-          const parsed = JSON.parse(savedTimer);
-          const elapsed = Math.floor((Date.now() - parsed.savedAt) / 1000);
-          const remaining = Math.max(0, parsed.timeRemaining - elapsed);
-          setTimeRemaining(remaining);
-        } catch (e) {
-          // Use server time
-        }
-      }
-
-      // Continue to start exam
-      handleStartExam();
-    }, 1500);
-  }, [examId]);
-
-  const handleResumeDeclined = useCallback((data) => {
-    setResumeRequestStatus('declined');
-    showToast('error', data.reason || 'Your resume request was declined.');
-  }, []);
-
-  const handleResumeExpired = useCallback(() => {
-    setResumeRequestStatus('expired');
-    showToast('error', 'Your resume request has expired.');
-  }, []);
-
-  // Create resume request for interrupted session
-  const createResumeRequest = useCallback(async () => {
-    if (!exam?.in_progress_attempt?.attempt_id) return;
-
-    try {
-      const result = await examService.createResumeRequest(exam.in_progress_attempt.attempt_id);
-      setResumeRequest(result.request);
-      setResumeRequestStatus('pending');
-      setPhase('waiting_approval');
-    } catch (err) {
-      console.error('Failed to create resume request:', err);
-      showToast('error', 'Failed to request resume approval. Please contact your instructor.');
-    }
-  }, [exam?.in_progress_attempt?.attempt_id]);
 
   const loadExamInfo = async () => {
     try {
@@ -679,335 +531,14 @@ const TakeExam = () => {
     };
   }, [phase, handleScreenshotAttempt]);
 
-  // ============================================
-  // NETWORK HEALTH CHECK (using axios to backend)
-  // ============================================
-
-  const checkNetworkHealth = useCallback(async () => {
-    try {
-      // Use the health check endpoint at "/"
-      await api.get('/', { timeout: 5000 });
-      return true;
-    } catch (err) {
-      return false;
-    }
-  }, []);
-
-  // ============================================
-  // SEALING MECHANISM - Lock answers on network loss or timer expiry
-  // ============================================
-
-  const sealExamSnapshot = useCallback(async (reason = 'network_loss') => {
-    if (isSealed || sealedData) {
-      console.log('Already sealed, skipping...');
-      return sealedData;
-    }
-
-    setSealStatus('sealing');
-
-    // Create the sealed snapshot
-    const snapshot = {
-      attempt_id: attempt?.attempt_id,
-      exam_id: examId,
-      responses: { ...responses },
-      flagged_questions: Array.from(flaggedQuestions),
-      sealed_at: new Date().toISOString(),
-      sealed_timestamp: Date.now(),
-      seal_reason: reason,
-      time_remaining_at_seal: timeRemaining,
-      tab_switch_count: tabSwitchCount,
-      questions_answered: Object.keys(responses).filter(qId => isQuestionAnswered(responses[qId])).length,
-      total_questions: questions.length,
-    };
-
-    // Generate hash for integrity verification
-    const hash = await generateHash(snapshot);
-    const sealedPayload = {
-      ...snapshot,
-      integrity_hash: hash,
-    };
-
-    // Store sealed data in state and localStorage
-    setSealedData(sealedPayload);
-    setIsSealed(true);
-    setSealStatus('sealed');
-
-    // Persist to localStorage for recovery
-    try {
-      const sealKey = `exam_sealed_${examId}_${attempt?.attempt_id}`;
-      localStorage.setItem(sealKey, JSON.stringify(sealedPayload));
-    } catch (err) {
-      console.error('Failed to persist sealed data:', err);
-    }
-
-    console.log('Exam SEALED at:', snapshot.sealed_at, 'Reason:', reason);
-    showToast('warning', `Your answers have been locked (${reason === 'timer_expired' ? 'time expired' : 'connection lost'}). Will submit when online.`);
-
-    return sealedPayload;
-  }, [isSealed, sealedData, attempt, examId, responses, flaggedQuestions, timeRemaining, tabSwitchCount, questions]);
-
-  // Load any previously sealed data on mount
-  useEffect(() => {
-    if (attempt?.attempt_id && phase === 'exam') {
-      const sealKey = `exam_sealed_${examId}_${attempt.attempt_id}`;
-      try {
-        const savedSealed = localStorage.getItem(sealKey);
-        if (savedSealed) {
-          const parsed = JSON.parse(savedSealed);
-          // Verify it's for this attempt
-          if (parsed.attempt_id === attempt.attempt_id) {
-            setSealedData(parsed);
-            setIsSealed(true);
-            setSealStatus('sealed');
-            setPendingSubmission(true);
-            console.log('Restored sealed exam data from localStorage');
-          }
-        }
-      } catch (err) {
-        console.error('Failed to load sealed data:', err);
-      }
-    }
-  }, [attempt?.attempt_id, phase, examId]);
-
-  // Network health polling with sealing on disconnect
-  useEffect(() => {
-    if (phase !== 'exam') return;
-
-    let lastOnlineStatus = true;
-
-    const pollNetwork = async () => {
-      const isHealthy = await checkNetworkHealth();
-
-      if (isHealthy && !lastOnlineStatus) {
-        // Network came back online!
-        console.log('Network restored!');
-        setIsOnline(true);
-        setShowOfflineWarning(false);
-
-        // If we have sealed data, auto-submit it
-        if (sealedData && pendingSubmission) {
-          submitSealedExam();
-        }
-      } else if (!isHealthy && lastOnlineStatus) {
-        // Network went offline - SEAL THE EXAM!
-        console.log('Network lost! Sealing exam...');
-        setIsOnline(false);
-        setShowOfflineWarning(true);
-
-        // Seal the exam immediately
-        if (!isSealed) {
-          await sealExamSnapshot('network_loss');
-          setPendingSubmission(true);
-        }
-      }
-
-      lastOnlineStatus = isHealthy;
-    };
-
-    // Initial check
-    pollNetwork();
-
-    // Poll every 5 seconds
-    networkCheckRef.current = setInterval(pollNetwork, NETWORK_CHECK_INTERVAL);
-
-    // Also listen to browser online/offline events as backup
-    const handleOffline = async () => {
-      setIsOnline(false);
-      setShowOfflineWarning(true);
-      if (!isSealed && phase === 'exam') {
-        await sealExamSnapshot('network_loss');
-        setPendingSubmission(true);
-      }
-    };
-
-    const handleOnline = () => {
-      // Don't trust browser event alone, let health check verify
-      pollNetwork();
-    };
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      if (networkCheckRef.current) {
-        clearInterval(networkCheckRef.current);
-      }
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-      if (submissionRetryRef.current) {
-        clearTimeout(submissionRetryRef.current);
-      }
-    };
-  }, [phase, checkNetworkHealth, isSealed, sealedData, pendingSubmission, sealExamSnapshot]);
-
-  // ============================================
-  // SUBMIT SEALED EXAM
-  // ============================================
-
-  const submitSealedExam = useCallback(async () => {
-    if (!sealedData || !sealedData.attempt_id) {
-      console.error('No sealed data to submit');
-      return;
-    }
-
-    if (submissionRetryCount >= MAX_SUBMISSION_RETRIES) {
-      showToast('error', 'Maximum retry attempts reached. Please contact your instructor with your sealed exam data.');
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-      setSealStatus('submitting');
-      setSubmissionRetryCount(prev => prev + 1);
-      showToast('info', `Connection restored — submitting your exam... (Attempt ${submissionRetryCount + 1})`);
-
-      // Submit the sealed payload to the server
-      // The server should verify: timestamp is within exam window, hash matches
-      const res = await examService.submitSealedExam(sealedData.attempt_id, {
-        sealed_responses: sealedData.responses,
-        sealed_at: sealedData.sealed_at,
-        sealed_timestamp: sealedData.sealed_timestamp,
-        integrity_hash: sealedData.integrity_hash,
-        seal_reason: sealedData.seal_reason,
-        time_remaining_at_seal: sealedData.time_remaining_at_seal,
-      });
-
-      const data = res.data || res;
-
-      // Success! Clear all pending state
-      setPendingSubmission(false);
-      setSubmissionRetryCount(0);
-      setSealStatus('submitted');
-
-      // Clear localStorage
-      clearResponsesFromStorage();
-      const sealKey = `exam_sealed_${examId}_${sealedData.attempt_id}`;
-      localStorage.removeItem(sealKey);
-
-      // Exit fullscreen
-      exitFullscreen();
-
-      // Clear timer
-      if (timerRef.current) clearInterval(timerRef.current);
-
-      // Update attempt
-      if (data.attempt) {
-        setAttempt(data.attempt);
-      } else if (data) {
-        setAttempt(prev => ({ ...prev, ...data }));
-      }
-
-      setPhase('submitted');
-      showToast('success', 'Exam submitted successfully!');
-    } catch (err) {
-      console.error('Sealed submission failed:', err);
-
-      // Check if server rejected due to timing/hash issues
-      if (err.response?.data?.message?.includes('expired') || err.response?.data?.message?.includes('window')) {
-        showToast('error', 'Exam time window has passed. Your sealed answers could not be submitted. Please contact your instructor.');
-        setSealStatus('rejected');
-        return;
-      }
-
-      if (err.response?.data?.message?.includes('hash') || err.response?.data?.message?.includes('tampered')) {
-        showToast('error', 'Integrity check failed. Please contact your instructor.');
-        setSealStatus('rejected');
-        return;
-      }
-
-      // Network still having issues, schedule retry with exponential backoff
-      const backoffTime = Math.min(5000 * Math.pow(2, submissionRetryCount), 30000);
-      showToast('error', `Submission failed. Retrying in ${backoffTime / 1000} seconds...`);
-
-      submissionRetryRef.current = setTimeout(async () => {
-        const isHealthy = await checkNetworkHealth();
-        if (isHealthy) {
-          submitSealedExam();
-        }
-      }, backoffTime);
-
-      setSubmitting(false);
-      setSealStatus('sealed');
-    }
-  }, [sealedData, submissionRetryCount, examId, checkNetworkHealth, clearResponsesFromStorage, exitFullscreen]);
-
-  // Retry submission function - uses sealed data if available
-  const retrySubmission = async () => {
-    // If we have sealed data, use the sealed submission path
-    if (sealedData) {
-      await submitSealedExam();
-      return;
-    }
-
-    if (!pendingSubmission || !attempt?.attempt_id) return;
-    if (submissionRetryCount >= MAX_SUBMISSION_RETRIES) {
-      showToast('error', 'Maximum retry attempts reached. Please contact your instructor.');
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-      setSubmissionRetryCount(prev => prev + 1);
-      showToast('info', `Retrying submission... (Attempt ${submissionRetryCount + 1})`);
-
-      const res = await examService.submitExam(attempt.attempt_id);
-      const data = res.data || res;
-
-      // Success! Clear pending state
-      setPendingSubmission(false);
-      setSubmissionRetryCount(0);
-      clearResponsesFromStorage();
-      exitFullscreen();
-
-      if (data.attempt) {
-        setAttempt(data.attempt);
-      } else if (data) {
-        setAttempt(prev => ({ ...prev, ...data }));
-      }
-
-      setPhase('submitted');
-      showToast('success', 'Exam submitted successfully!');
-    } catch (err) {
-      console.error('Retry submission failed:', err);
-
-      // Schedule next retry with exponential backoff
-      const backoffTime = Math.min(5000 * Math.pow(2, submissionRetryCount), 30000);
-      showToast('error', `Submission failed. Retrying in ${backoffTime / 1000} seconds...`);
-
-      submissionRetryRef.current = setTimeout(async () => {
-        const isHealthy = await checkNetworkHealth();
-        if (isHealthy) {
-          retrySubmission();
-        }
-      }, backoffTime);
-
-      setSubmitting(false);
-    }
-  };
-
-  // Prevent navigation during exam and seal on page unload
+  // Prevent navigation during exam
   useEffect(() => {
     if (phase !== 'exam') return;
 
     const handleBeforeUnload = (e) => {
-      // Seal the exam using sendBeacon for reliability during page unload
-      if (attempt?.attempt_id && !isSealed) {
-        const sealData = JSON.stringify({
-          time_remaining_seconds: timeRemaining,
-          responses: responses
-        });
-
-        // Use sendBeacon for reliability during page unload
-        const baseUrl = import.meta.env.VITE_API_URL?.replace(/\/api\/?$/, '') || '';
-        navigator.sendBeacon(
-          `${baseUrl}/api/student/exam/attempt/${attempt.attempt_id}/seal`,
-          new Blob([sealData], { type: 'application/json' })
-        );
-      }
-
       // Show browser confirmation dialog
       e.preventDefault();
-      e.returnValue = 'Your exam will be paused. You will need instructor approval to resume.';
+      e.returnValue = 'You have an exam in progress. Are you sure you want to leave?';
       return e.returnValue;
     };
 
@@ -1250,18 +781,6 @@ const TakeExam = () => {
   // Submit handling
   const handleAutoSubmit = async () => {
     showToast('error', 'Time expired! Auto-submitting your exam...');
-
-    // Check if online
-    const isHealthy = await checkNetworkHealth();
-
-    if (!isHealthy) {
-      // Offline - seal and wait for reconnection
-      await sealExamSnapshot('timer_expired');
-      setPendingSubmission(true);
-      return;
-    }
-
-    // Online - submit normally
     await submitExam();
   };
 
@@ -1293,23 +812,6 @@ const TakeExam = () => {
       return;
     }
 
-    // If already sealed, use sealed submission
-    if (isSealed && sealedData) {
-      await submitSealedExam();
-      return;
-    }
-
-    // Check if offline using health check
-    const isHealthy = await checkNetworkHealth();
-
-    if (!isHealthy) {
-      showToast('warning', 'You are offline. Sealing your answers for later submission...');
-      await sealExamSnapshot('network_loss');
-      setPendingSubmission(true);
-      setShowOfflineWarning(true);
-      return;
-    }
-
     try {
       setSubmitting(true);
       if (timerRef.current) clearInterval(timerRef.current);
@@ -1323,10 +825,6 @@ const TakeExam = () => {
 
       // Clear localStorage after successful submission
       clearResponsesFromStorage();
-      const sealKey = `exam_sealed_${examId}_${attempt.attempt_id}`;
-      localStorage.removeItem(sealKey);
-      setPendingSubmission(false);
-      setSubmissionRetryCount(0);
 
       // Exit fullscreen
       exitFullscreen();
@@ -1342,24 +840,7 @@ const TakeExam = () => {
       showToast('success', 'Exam submitted successfully!');
     } catch (err) {
       console.error('Submit error:', err);
-
-      // Check if it's a network error
-      if (err.code === 'ERR_NETWORK' || err.message?.includes('network') || err.message?.includes('Network')) {
-        showToast('warning', 'Network error. Sealing your answers for later submission...');
-        await sealExamSnapshot('network_loss');
-        setPendingSubmission(true);
-        setShowOfflineWarning(true);
-
-        // Start retry mechanism with exponential backoff
-        submissionRetryRef.current = setTimeout(async () => {
-          const isHealthy = await checkNetworkHealth();
-          if (isHealthy) {
-            submitSealedExam();
-          }
-        }, 5000);
-      } else {
-        showToast('error', err.message || 'Failed to submit exam. Please try again.');
-      }
+      showToast('error', err.message || 'Failed to submit exam. Please try again.');
       setSubmitting(false);
     }
   };
@@ -1729,24 +1210,6 @@ const TakeExam = () => {
                 )}
               </motion.button>
 
-              {/* Request instructor approval (for interrupted sessions) */}
-              {inProgress?.is_sealed && (
-                <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 mt-4">
-                  <p className="text-sm font-medium text-purple-900 mb-2">Session was interrupted</p>
-                  <p className="text-xs text-purple-600 mb-3">
-                    Your exam session was interrupted. You may need instructor approval to resume.
-                  </p>
-                  <button
-                    onClick={createResumeRequest}
-                    disabled={loading}
-                    className="w-full flex items-center justify-center space-x-2 bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg font-medium text-sm disabled:opacity-60"
-                  >
-                    <ShieldCheck className="w-4 h-4" />
-                    <span>Request Instructor Approval</span>
-                  </button>
-                </div>
-              )}
-
               {/* Start over (only if attempts allow it) */}
               {canStartOver && (
                 <button
@@ -1981,53 +1444,6 @@ const TakeExam = () => {
               {returnPhase === 'resume' ? 'Back to Resume Screen' : 'Back to Instructions'}
             </button>
           </form>
-        </motion.div>
-      </div>
-    );
-  }
-
-  // Waiting for approval phase (resume request)
-  if (phase === 'waiting_approval') {
-    return (
-      <WaitingApprovalScreen
-        requestId={resumeRequest?.request_id}
-        examTitle={exam?.title}
-        status={resumeRequestStatus}
-        isPublic={false}
-        onApproved={handleResumeApproved}
-        onDeclined={handleResumeDeclined}
-        onExpired={handleResumeExpired}
-        onCancel={() => {
-          setResumeRequest(null);
-          setResumeRequestStatus(null);
-          setPhase('resume');
-        }}
-      />
-    );
-  }
-
-  // Checking sealed exams phase
-  if (checkingSealed) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 to-blue-50 flex items-center justify-center py-8 px-4">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center"
-        >
-          <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Upload className="w-10 h-10 text-amber-600 animate-pulse" />
-          </div>
-
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Checking Exam Status...</h2>
-          <p className="text-gray-500 mb-6">
-            Please wait while we check for any pending submissions...
-          </p>
-
-          <div className="flex items-center justify-center space-x-2">
-            <Loader2 className="w-6 h-6 text-primary-600 animate-spin" />
-            <span className="text-gray-600">Please wait...</span>
-          </div>
         </motion.div>
       </div>
     );
@@ -2281,91 +1697,6 @@ const TakeExam = () => {
               <div>
                 <p className="font-bold">{securityMessage}</p>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Offline Warning / Pending Submission / Sealed Banner */}
-        <AnimatePresence>
-          {(showOfflineWarning || pendingSubmission || isSealed) && (
-            <motion.div
-              initial={{ opacity: 0, y: -50 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -50 }}
-              className={`fixed top-4 left-1/2 transform -translate-x-1/2 px-6 py-4 rounded-lg shadow-xl flex items-center space-x-3 z-50 max-w-md ${
-                sealStatus === 'submitted' ? 'bg-emerald-600' :
-                sealStatus === 'submitting' ? 'bg-blue-600' :
-                isSealed ? 'bg-purple-600' :
-                isOnline ? 'bg-amber-500' : 'bg-red-600'
-              } text-white`}
-            >
-              {sealStatus === 'submitted' ? (
-                <CheckCircle className="w-6 h-6" />
-              ) : sealStatus === 'submitting' ? (
-                <Loader2 className="w-6 h-6 animate-spin" />
-              ) : isSealed ? (
-                <ShieldCheck className="w-6 h-6" />
-              ) : isOnline ? (
-                <Wifi className="w-6 h-6" />
-              ) : (
-                <WifiOff className="w-6 h-6" />
-              )}
-              <div className="flex-1">
-                {sealStatus === 'submitted' ? (
-                  <>
-                    <p className="font-bold">Exam Submitted Successfully!</p>
-                    <p className="text-sm opacity-90">Redirecting to results...</p>
-                  </>
-                ) : sealStatus === 'submitting' ? (
-                  <>
-                    <p className="font-bold">Connection restored — submitting your exam...</p>
-                    <p className="text-sm opacity-90">Please wait while we submit your sealed answers.</p>
-                  </>
-                ) : isSealed && !isOnline ? (
-                  <>
-                    <p className="font-bold flex items-center gap-2">
-                      <Lock className="w-4 h-4" /> Answers Locked & Sealed
-                    </p>
-                    <p className="text-sm opacity-90">
-                      Your answers were sealed at {sealedData?.sealed_at ? new Date(sealedData.sealed_at).toLocaleTimeString() : 'N/A'}.
-                      Waiting for connection to submit...
-                    </p>
-                  </>
-                ) : isSealed && isOnline ? (
-                  <>
-                    <p className="font-bold flex items-center gap-2">
-                      <Lock className="w-4 h-4" /> Sealed — Ready to Submit
-                    </p>
-                    <p className="text-sm opacity-90">
-                      {submitting ? 'Submitting...' : `Click retry to submit. Attempt ${submissionRetryCount}/${MAX_SUBMISSION_RETRIES}`}
-                    </p>
-                  </>
-                ) : !isOnline ? (
-                  <>
-                    <p className="font-bold">You are offline</p>
-                    <p className="text-sm opacity-90">
-                      Your answers are being sealed. They will be submitted when connection returns.
-                    </p>
-                  </>
-                ) : pendingSubmission ? (
-                  <>
-                    <p className="font-bold">Submitting your exam...</p>
-                    <p className="text-sm opacity-90">
-                      {submitting ? 'Please wait...' : `Retry attempt ${submissionRetryCount}/${MAX_SUBMISSION_RETRIES}`}
-                    </p>
-                  </>
-                ) : null}
-              </div>
-              {isOnline && (pendingSubmission || isSealed) && !submitting && sealStatus !== 'submitted' && (
-                <button
-                  onClick={isSealed ? submitSealedExam : retrySubmission}
-                  className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors"
-                  title="Submit now"
-                >
-                  <RefreshCw className="w-5 h-5" />
-                </button>
-              )}
-              {submitting && sealStatus !== 'submitted' && <Loader2 className="w-5 h-5 animate-spin" />}
             </motion.div>
           )}
         </AnimatePresence>
